@@ -51,13 +51,20 @@ namespace DatabaseManager
         private TResult Convert<TResult>(SqlDataReader dataReader)
         {
             Type resultType = typeof(TResult);
+            TResult result;
 
             if (resultType.IsArray)
             {
-                return (TResult)mr_TableConvertManager.GetObjects(dataReader);
+                result = (TResult)mr_TableConvertManager.GetObjects(dataReader);
+            }
+            else
+            {
+                result = (TResult)mr_TableConvertManager.GetObject(dataReader);
             }
 
-            return (TResult)mr_TableConvertManager.GetObject(dataReader);
+            dataReader.Close();
+
+            return result;
         }
 
         IDatabaseQueryable<TElement> IDatabaseQueryProvider.CreateQuery<TElement>(Expression expression) =>

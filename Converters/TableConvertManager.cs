@@ -84,7 +84,7 @@ namespace DatabaseManager
         /// <param name="dataReader"></param>
         /// <returns></returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public override object GetObject(SqlDataReader dataReader)
+        protected override object GetInternalObject(SqlDataReader dataReader)
         {
             object table = Activator.CreateInstance(mr_Type);
 

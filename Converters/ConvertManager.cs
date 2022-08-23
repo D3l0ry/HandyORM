@@ -1,4 +1,4 @@
-﻿using System;
+﻿ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
@@ -36,7 +36,7 @@ namespace DatabaseManager
 
             while (dataReader.Read())
             {
-                object newObject = GetObject(dataReader);
+                object newObject = GetInternalObject(dataReader);
 
                 list.Add(newObject);
             }
@@ -53,6 +53,8 @@ namespace DatabaseManager
                 .MakeGenericMethod(mr_Type)
                 .Invoke(null, new object[] { cast });
 
+            dataReader.Close();
+
             return result;
         }
 
@@ -63,6 +65,21 @@ namespace DatabaseManager
         /// <returns></returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public virtual object GetObject(SqlDataReader dataReader)
+        {
+            if(!dataReader.Read())
+            {
+                if(mr_Type.IsValueType)
+                {
+                    return Activator.CreateInstance(mr_Type);
+                }
+
+                return null;
+            }
+
+            return GetInternalObject(dataReader);
+        }
+
+        protected virtual object GetInternalObject(SqlDataReader dataReader)
         {
             if (dataReader.FieldCount == 1)
             {

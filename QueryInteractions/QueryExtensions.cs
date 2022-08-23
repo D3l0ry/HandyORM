@@ -56,6 +56,7 @@ namespace DatabaseManager.QueryInteractions
             }
 
             Type resultType = typeof(TResult);
+            TResult result;
 
             if (resultType.IsDatabaseTableType())
             {
@@ -65,13 +66,13 @@ namespace DatabaseManager.QueryInteractions
                 {
                     tableQueryProvider = new TableQueryProvider(resultType.GetElementType(), sqlConnection);
 
-                    return (TResult)tableQueryProvider.Converter.GetObjects(dataReader);
+                    result = (TResult)tableQueryProvider.Converter.GetObjects(dataReader);
                 }
                 else
                 {
                     tableQueryProvider = new TableQueryProvider(resultType, sqlConnection);
 
-                    return (TResult)tableQueryProvider.Converter.GetObject(dataReader);
+                    result = (TResult)tableQueryProvider.Converter.GetObject(dataReader);
                 }
             }
             else
@@ -82,15 +83,19 @@ namespace DatabaseManager.QueryInteractions
                 {
                     convertManager = new ConvertManager(resultType.GetElementType());
 
-                    return (TResult)convertManager.GetObjects(dataReader);
+                    result = (TResult)convertManager.GetObjects(dataReader);
                 }
                 else
                 {
                     convertManager = new ConvertManager(resultType);
 
-                    return (TResult)convertManager.GetObject(dataReader);
+                    result = (TResult)convertManager.GetObject(dataReader);
                 }
             }
+
+            dataReader.Close();
+
+            return result;
         }
     }
 }
