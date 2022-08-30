@@ -39,7 +39,7 @@ namespace DatabaseManager.QueryInteractions
             KeyValuePair<PropertyInfo, ColumnAttribute> primaryKeyProperty = mr_Properties
                 .FirstOrDefault(currentPropertyValuePair => currentPropertyValuePair.Value.IsPrimaryKey);
 
-            if (primaryKeyProperty.Key is null)
+            if (primaryKeyProperty.Key == null)
             {
                 throw new NullReferenceException($"В таблице {mr_TableAttribute.Name} не существует первичного ключа!");
             }
@@ -55,7 +55,7 @@ namespace DatabaseManager.QueryInteractions
         {
             IEnumerable<PropertyInfo> properties = mr_TableType.GetProperties(BindingFlags.Public | BindingFlags.Instance)
                 .Where(currentProperty => currentProperty.CustomAttributes
-                .Any(currentPropertyAttribute => currentPropertyAttribute.AttributeType == typeof(ColumnAttribute)));
+                    .Any(currentPropertyAttribute => currentPropertyAttribute.AttributeType == typeof(ColumnAttribute)));
 
             foreach (PropertyInfo currentProperty in properties)
             {

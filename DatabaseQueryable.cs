@@ -60,8 +60,8 @@ namespace System.Linq
                 throw new ArgumentNullException(nameof(predicate));
             }
 
-            return source.Provider
-                .CreateQuery<TSource>(
+            return ((IDatabaseQueryProvider<TSource>)source.Provider)
+                .CreateQuery(
                     Expression.Call(
                         null,
                         GetMethodInfo(Where, source, predicate),

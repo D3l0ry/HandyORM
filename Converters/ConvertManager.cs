@@ -66,17 +66,23 @@ namespace DatabaseManager
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public virtual object GetObject(SqlDataReader dataReader)
         {
-            if(!dataReader.Read())
-            {
-                if(mr_Type.IsValueType)
-                {
-                    return Activator.CreateInstance(mr_Type);
-                }
+            object value = null;
 
-                return null;
+            if(dataReader.Read())
+            {
+                value = GetInternalObject(dataReader);
+            }
+            else
+            {
+                if (mr_Type.IsValueType)
+                {
+                    value = Activator.CreateInstance(mr_Type);
+                }
             }
 
-            return GetInternalObject(dataReader);
+            dataReader.Close();
+
+            return value;
         }
 
         protected virtual object GetInternalObject(SqlDataReader dataReader)

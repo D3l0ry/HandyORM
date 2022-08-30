@@ -4,21 +4,23 @@ using System.Linq;
 using System.Reflection;
 using System.Text;
 
+using DatabaseManager.TableInteractions;
+
 namespace DatabaseManager.QueryInteractions
 {
     internal class TableQueryCreator
     {
-        private readonly TableQueryProvider mr_TableQueryProvider;
+        private readonly TableProviderExtensions mr_TableQueryProvider;
 
         private readonly TableAttribute mr_TableAttribute;
 
-        private readonly Dictionary<string, TableQueryProvider> mr_NestedTableQueries;
+        private readonly Dictionary<string, TableProviderExtensions> mr_NestedTableQueries;
 
         private readonly TablePropertyQueryManager mr_PropertyQueryCreator;
 
         private readonly StringBuilder mr_MainQuery;
 
-        public TableQueryCreator(Type tableType, TableQueryProvider queryProvider)
+        public TableQueryCreator(Type tableType, TableProviderExtensions queryProvider)
         {
             if (tableType is null)
             {
@@ -36,7 +38,7 @@ namespace DatabaseManager.QueryInteractions
 
             mr_PropertyQueryCreator = new TablePropertyQueryManager(tableType, mr_TableAttribute);
 
-            mr_NestedTableQueries = new Dictionary<string, TableQueryProvider>();
+            mr_NestedTableQueries = new Dictionary<string, TableProviderExtensions>();
 
             mr_MainQuery = CreateInitialTableQuery();
         }
@@ -45,7 +47,7 @@ namespace DatabaseManager.QueryInteractions
 
         public TablePropertyQueryManager PropertyQueryCreator => mr_PropertyQueryCreator;
 
-        public Dictionary<string, TableQueryProvider> ForeignTables => mr_NestedTableQueries;
+        public Dictionary<string, TableProviderExtensions> ForeignTables => mr_NestedTableQueries;
 
         public string MainQuery => mr_MainQuery.ToString();
 
@@ -62,7 +64,7 @@ namespace DatabaseManager.QueryInteractions
             {
                 ColumnAttribute columnAttribute = currentKeyValuePair.Value;
 
-                if (columnAttribute.IsTable || columnAttribute.IsArray)
+                if (columnAttribute.IsTable)
                 {
                     continue;
                 }
@@ -71,13 +73,13 @@ namespace DatabaseManager.QueryInteractions
                 {
                     TableQueryCreator foreignTableQueryCreator = null;
 
-                    if (ForeignTables.TryGetValue(columnAttribute.ForeignTable.Name, out TableQueryProvider tableQueryProvider))
+                    if (ForeignTables.TryGetValue(columnAttribute.ForeignTable.Name, out TableProviderExtensions tableQueryProvider))
                     {
                         foreignTableQueryCreator = tableQueryProvider.Creator;
                     }
                     else
                     {
-                        TableQueryProvider foreignTableQueryProvider = new TableQueryProvider(columnAttribute.ForeignTable, mr_TableQueryProvider.Connection);
+                        TableProviderExtensions foreignTableQueryProvider = new TableProviderExtensions(columnAttribute.ForeignTable, mr_TableQueryProvider.Connection);
 
                         ForeignTables.Add(columnAttribute.ForeignTable.Name, foreignTableQueryProvider);
 
@@ -120,19 +122,8 @@ namespace DatabaseManager.QueryInteractions
 
             queryString.Append($" WHERE ");
 
-            if (string.IsNullOrWhiteSpace(propertyAttribute.ForeignTableKey))
-            {
-                queryString
-                    .Append($"{foreignTableQueryManager.mr_PropertyQueryCreator.GetPropertyName(foreignTableQueryManager.mr_PropertyQueryCreator.PrimaryKey)}=");
-            }
-            else
-            {
-                KeyValuePair<PropertyInfo, ColumnAttribute> selectedForeingTableProperty = foreignTableQueryManager.mr_PropertyQueryCreator
-                    .GetProperty(propertyAttribute.ForeignTableKey);
-
-                queryString
-                    .Append($"{foreignTableQueryManager.mr_PropertyQueryCreator.GetPropertyName(selectedForeingTableProperty)}=");
-            }
+            queryString
+                .Append($"{foreignTableQueryManager.mr_PropertyQueryCreator.GetPropertyName(foreignTableQueryManager.mr_PropertyQueryCreator.PrimaryKey)}=");
 
             return queryString.ToString();
         }

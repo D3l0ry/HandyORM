@@ -5,14 +5,16 @@ using System.Linq.Expressions;
 using System.Reflection;
 using System.Text;
 
+using DatabaseManager.TableInteractions;
+
 namespace DatabaseManager.QueryInteractions
 {
     internal class ExpressionTranslator : ExpressionVisitor
     {
-        private readonly TableQueryProvider mr_TableQueryProvider;
+        private readonly TableProviderExtensions mr_TableQueryProvider;
         private StringBuilder m_TranslatedQuery;
 
-        public ExpressionTranslator(TableQueryProvider queryProvider) => mr_TableQueryProvider = queryProvider;
+        public ExpressionTranslator(TableProviderExtensions queryProvider) => mr_TableQueryProvider = queryProvider;
 
         internal string Translate(Expression expression, bool getMainQuery = true)
         {

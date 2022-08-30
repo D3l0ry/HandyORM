@@ -3,15 +3,18 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using System.Runtime.CompilerServices;
+
+using DatabaseManager.TableInteractions;
+
 using Microsoft.Data.SqlClient;
 
 namespace DatabaseManager
 {
     public class TableConvertManager : ConvertManager
     {
-        private readonly TableQueryProvider mr_QueryProvider;
+        private readonly TableProviderExtensions mr_QueryProvider;
 
-        internal TableConvertManager(Type tableType, TableQueryProvider queryProvider) : base(tableType) => mr_QueryProvider = queryProvider;
+        internal TableConvertManager(Type tableType, TableProviderExtensions queryProvider) : base(tableType) => mr_QueryProvider = queryProvider;
 
         /// <summary>
         /// Получение объектов из внешней таблицы
@@ -25,19 +28,7 @@ namespace DatabaseManager
             Type foreignTableType;
             Type propertyGenericType;
 
-            if (currentColumnAttribute.IsArray)
-            {
-                propertyGenericType = currentProperty.PropertyType.GetGenericArguments().First();
-
-                if (!propertyGenericType.IsArray)
-                {
-                    throw new ArrayTypeMismatchException($"Свойство {propertyGenericType} не является массивом, хотя Column объявлен как массив");
-                }
-            }
-            else
-            {
-                propertyGenericType = currentColumnAttribute.ForeignTable;
-            }
+            propertyGenericType = currentColumnAttribute.ForeignTable;
 
             foreignTableType = typeof(ForeignTable<>).MakeGenericType(propertyGenericType);
 
@@ -46,13 +37,13 @@ namespace DatabaseManager
                 throw new InvalidCastException($"{foreignTableType} не соответствует типу {currentProperty.PropertyType}");
             }
 
-            TableQueryProvider foreignTableConvertManager = GetOrCreateForeignTableConvertManager(currentProperty, currentColumnAttribute);
+            TableProviderExtensions foreignTableConvertManager = GetOrCreateForeignTableConvertManager(currentProperty, currentColumnAttribute);
 
             PropertyInfo mainTableForeignKeyProperty = mr_QueryProvider.Creator.PropertyQueryCreator
                 .GetProperty(currentColumnAttribute.ForeignKeyName).Key;
 
             object foreignTable = foreignTableType
-                .GetConstructor(BindingFlags.NonPublic | BindingFlags.Instance, null, new Type[] { typeof(object), typeof(PropertyInfo), typeof(TableQueryProvider), typeof(ColumnAttribute) }, null)
+                .GetConstructor(BindingFlags.NonPublic | BindingFlags.Instance, null, new Type[] { typeof(object), typeof(PropertyInfo), typeof(TableProviderExtensions), typeof(ColumnAttribute) }, null)
                 .Invoke(new object[] { mainTable, mainTableForeignKeyProperty, foreignTableConvertManager, currentColumnAttribute });
 
             currentProperty.SetValue(mainTable, foreignTable);
@@ -64,14 +55,14 @@ namespace DatabaseManager
         /// <param name="currentProperty"></param>
         /// <param name="propertyAttribute"></param>
         /// <returns></returns>
-        private TableQueryProvider GetOrCreateForeignTableConvertManager(PropertyInfo currentProperty, ColumnAttribute propertyAttribute)
+        private TableProviderExtensions GetOrCreateForeignTableConvertManager(PropertyInfo currentProperty, ColumnAttribute propertyAttribute)
         {
             if (mr_QueryProvider.Creator.ForeignTables.ContainsKey(currentProperty.Name))
             {
                 return mr_QueryProvider.Creator.ForeignTables[currentProperty.Name];
             }
 
-            TableQueryProvider foreignTableConvertManager = new TableQueryProvider(propertyAttribute.ForeignTable, mr_QueryProvider.Connection);
+            TableProviderExtensions foreignTableConvertManager = new TableProviderExtensions(propertyAttribute.ForeignTable, mr_QueryProvider.Connection);
 
             mr_QueryProvider.Creator.ForeignTables.Add(currentProperty.Name, foreignTableConvertManager);
 
@@ -95,7 +86,7 @@ namespace DatabaseManager
                 PropertyInfo currentProperty = currentKeyValuePair.Key;
                 ColumnAttribute currentColumnAttribute = currentKeyValuePair.Value;
 
-                if (currentColumnAttribute.IsTable || currentColumnAttribute.IsArray)
+                if (currentColumnAttribute.IsTable)
                 {
                     if (string.IsNullOrWhiteSpace(currentColumnAttribute.ForeignKeyName))
                     {

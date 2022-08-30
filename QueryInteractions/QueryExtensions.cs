@@ -1,5 +1,7 @@
 ﻿using System;
 using System.Reflection;
+using DatabaseManager.TableInteractions;
+
 using Microsoft.Data.SqlClient;
 
 namespace DatabaseManager.QueryInteractions
@@ -43,6 +45,26 @@ namespace DatabaseManager.QueryInteractions
             }
         }
 
+        public static SqlDataReader ExecuteReader(this SqlConnection sqlConnection, string query)
+        {
+            if (sqlConnection == null)
+            {
+                throw new ArgumentNullException(nameof(sqlConnection));
+            }
+
+            if (string.IsNullOrWhiteSpace(query))
+            {
+                throw new ArgumentNullException(nameof(query));
+            }
+
+            using (SqlCommand sqlCommand = sqlConnection.CreateCommand())
+            {
+                sqlCommand.CommandText = query;
+
+                return sqlCommand.ExecuteReader();
+            }
+        }
+
         public static TResult ConvertReader<TResult>(this SqlConnection sqlConnection, SqlDataReader dataReader)
         {
             if (sqlConnection == null)
@@ -60,17 +82,17 @@ namespace DatabaseManager.QueryInteractions
 
             if (resultType.IsDatabaseTableType())
             {
-                TableQueryProvider tableQueryProvider;
+                TableProviderExtensions tableQueryProvider;
 
                 if (resultType.IsArray)
                 {
-                    tableQueryProvider = new TableQueryProvider(resultType.GetElementType(), sqlConnection);
+                    tableQueryProvider = new TableProviderExtensions(resultType.GetElementType(), sqlConnection);
 
                     result = (TResult)tableQueryProvider.Converter.GetObjects(dataReader);
                 }
                 else
                 {
-                    tableQueryProvider = new TableQueryProvider(resultType, sqlConnection);
+                    tableQueryProvider = new TableProviderExtensions(resultType, sqlConnection);
 
                     result = (TResult)tableQueryProvider.Converter.GetObject(dataReader);
                 }

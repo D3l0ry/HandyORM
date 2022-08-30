@@ -11,16 +11,14 @@ namespace DatabaseManager
 {
     public class TableManager<Table> : IDatabaseQueryable<Table>
     {
-        private readonly TableQueryProvider mr_TableQueryProvider;
+        private readonly TableQueryProvider<Table> mr_TableQueryProvider;
         private readonly Expression mr_Expression;
 
         internal TableManager(SqlConnection sqlConnection) : this(null, null, sqlConnection) { }
 
-        internal TableManager(TableQueryProvider tableQueryProvider, Expression expression, SqlConnection sqlConnection)
+        internal TableManager(TableQueryProvider<Table> tableQueryProvider, Expression expression, SqlConnection sqlConnection)
         {
-            Type tableType = typeof(Table);
-
-            mr_TableQueryProvider = tableQueryProvider ?? new TableQueryProvider(tableType, sqlConnection);
+            mr_TableQueryProvider = tableQueryProvider ?? new TableQueryProvider<Table>(sqlConnection);
             mr_Expression = expression ?? Expression.Constant(this);
         }
 
@@ -32,23 +30,25 @@ namespace DatabaseManager
 
         public void Add(Table newElement)
         {
-            TablePropertyQueryManager propertyQueryCreator = mr_TableQueryProvider.Creator.PropertyQueryCreator;
+            TablePropertyQueryManager propertyQueryCreator = mr_TableQueryProvider.Extensions.Creator.PropertyQueryCreator;
 
             string createElementQuery = $"INSERT INTO {propertyQueryCreator.GetTableName()} " +
                 $"{propertyQueryCreator.GetTableProperties()} VALUES {propertyQueryCreator.GetTablePropertiesValue(newElement)};";
 
-            mr_TableQueryProvider.Connection.ExecuteNonQuery(createElementQuery);
+            mr_TableQueryProvider.Extensions.Connection.ExecuteNonQuery(createElementQuery);
         }
 
         public IdType AddAndOutputId<IdType>(Table newElement) where IdType : struct
         {
-            TablePropertyQueryManager propertyQueryCreator = mr_TableQueryProvider.Creator.PropertyQueryCreator;
+            TablePropertyQueryManager propertyQueryCreator = mr_TableQueryProvider.Extensions.Creator.PropertyQueryCreator;
 
             string createElementQuery = $"INSERT INTO {propertyQueryCreator.GetTableName()} " +
                 $"{propertyQueryCreator.GetTableProperties()} OUTPUT INSERTED.[{propertyQueryCreator.PrimaryKey.Value.Name}] " +
                 $"VALUES {propertyQueryCreator.GetTablePropertiesValue(newElement)};";
 
-            return mr_TableQueryProvider.Execute<IdType>(createElementQuery);
+            SqlDataReader dataReader = mr_TableQueryProvider.Extensions.Connection.ExecuteReader(createElementQuery);
+
+            return mr_TableQueryProvider.Extensions.Connection.ConvertReader<IdType>(dataReader);
         }
 
         public void AddRange(IEnumerable<Table> newElements)
@@ -58,11 +58,11 @@ namespace DatabaseManager
                 throw new ArgumentNullException(nameof(newElements));
             }
 
-            TablePropertyQueryManager propertyQueryCreator = mr_TableQueryProvider.Creator.PropertyQueryCreator;
+            TablePropertyQueryManager propertyQueryCreator = mr_TableQueryProvider.Extensions.Creator.PropertyQueryCreator;
 
-            SqlTransaction transaction = mr_TableQueryProvider.Connection.BeginTransaction();
+            SqlTransaction transaction = mr_TableQueryProvider.Extensions.Connection.BeginTransaction();
 
-            SqlCommand sqlCommand = mr_TableQueryProvider.Connection.CreateCommand();
+            SqlCommand sqlCommand = mr_TableQueryProvider.Extensions.Connection.CreateCommand();
             sqlCommand.Transaction = transaction;
 
             try
@@ -89,32 +89,32 @@ namespace DatabaseManager
 
         public void Update(Table element)
         {
-            TablePropertyQueryManager propertyQueryCreator = mr_TableQueryProvider.Creator.PropertyQueryCreator;
+            TablePropertyQueryManager propertyQueryCreator = mr_TableQueryProvider.Extensions.Creator.PropertyQueryCreator;
 
             string createElementQuery = $"UPDATE {propertyQueryCreator.GetTableName()} SET " +
                 $"{propertyQueryCreator.GetTablePropertiesNameAndValue(element)}" +
-                $" WHERE {propertyQueryCreator.GetPropertyName(mr_TableQueryProvider.Creator.PropertyQueryCreator.PrimaryKey)} = " +
-                $"{TablePropertyQueryManager.ConvertFieldQuery(mr_TableQueryProvider.Creator.PropertyQueryCreator.PrimaryKey.Key.GetValue(element))};";
+                $" WHERE {propertyQueryCreator.GetPropertyName(mr_TableQueryProvider.Extensions.Creator.PropertyQueryCreator.PrimaryKey)} = " +
+                $"{TablePropertyQueryManager.ConvertFieldQuery(mr_TableQueryProvider.Extensions.Creator.PropertyQueryCreator.PrimaryKey.Key.GetValue(element))};";
 
-            mr_TableQueryProvider.Connection.ExecuteNonQuery(createElementQuery);
+            mr_TableQueryProvider.Extensions.Connection.ExecuteNonQuery(createElementQuery);
         }
 
         public void Delete(Table element)
         {
-            TablePropertyQueryManager propertyQueryCreator = mr_TableQueryProvider.Creator.PropertyQueryCreator;
+            TablePropertyQueryManager propertyQueryCreator = mr_TableQueryProvider.Extensions.Creator.PropertyQueryCreator;
 
             string createElementQuery = $"DELETE FROM {propertyQueryCreator.GetTableName()}" +
-                $" WHERE {propertyQueryCreator.GetPropertyName(mr_TableQueryProvider.Creator.PropertyQueryCreator.PrimaryKey)} = " +
-                $"{TablePropertyQueryManager.ConvertFieldQuery(mr_TableQueryProvider.Creator.PropertyQueryCreator.PrimaryKey.Key.GetValue(element))};";
+                $" WHERE {propertyQueryCreator.GetPropertyName(mr_TableQueryProvider.Extensions.Creator.PropertyQueryCreator.PrimaryKey)} = " +
+                $"{TablePropertyQueryManager.ConvertFieldQuery(mr_TableQueryProvider.Extensions.Creator.PropertyQueryCreator.PrimaryKey.Key.GetValue(element))};";
 
-            mr_TableQueryProvider.Connection.ExecuteNonQuery(createElementQuery);
+            mr_TableQueryProvider.Extensions.Connection.ExecuteNonQuery(createElementQuery);
         }
 
         public void Delete(Expression<Func<Table, bool>> expression)
         {
-            StringBuilder createElementQuery = new StringBuilder($"DELETE {mr_TableQueryProvider.Translator.Translate(expression, false)}");
+            StringBuilder createElementQuery = new StringBuilder($"DELETE {mr_TableQueryProvider.Extensions.Translator.Translate(expression, false)}");
 
-            mr_TableQueryProvider.Connection.ExecuteNonQuery(createElementQuery.ToString());
+            mr_TableQueryProvider.Extensions.Connection.ExecuteNonQuery(createElementQuery.ToString());
         }
 
         public void DeleteRange(IEnumerable<Table> removedElements)
@@ -124,11 +124,11 @@ namespace DatabaseManager
                 throw new ArgumentNullException(nameof(removedElements));
             }
 
-            TablePropertyQueryManager propertyQueryCreator = mr_TableQueryProvider.Creator.PropertyQueryCreator;
+            TablePropertyQueryManager propertyQueryCreator = mr_TableQueryProvider.Extensions.Creator.PropertyQueryCreator;
 
-            SqlTransaction transaction = mr_TableQueryProvider.Connection.BeginTransaction();
+            SqlTransaction transaction = mr_TableQueryProvider.Extensions.Connection.BeginTransaction();
 
-            SqlCommand sqlCommand = mr_TableQueryProvider.Connection.CreateCommand();
+            SqlCommand sqlCommand = mr_TableQueryProvider.Extensions.Connection.CreateCommand();
             sqlCommand.Transaction = transaction;
 
             try
@@ -136,8 +136,8 @@ namespace DatabaseManager
                 foreach (Table currentElement in removedElements)
                 {
                     string createElementQuery = $"DELETE FROM {propertyQueryCreator.GetTableName()}" +
-                        $" WHERE {propertyQueryCreator.GetPropertyName(mr_TableQueryProvider.Creator.PropertyQueryCreator.PrimaryKey)} = " +
-                        $"{TablePropertyQueryManager.ConvertFieldQuery(mr_TableQueryProvider.Creator.PropertyQueryCreator.PrimaryKey.Key.GetValue(currentElement))};";
+                        $" WHERE {propertyQueryCreator.GetPropertyName(mr_TableQueryProvider.Extensions.Creator.PropertyQueryCreator.PrimaryKey)} = " +
+                        $"{TablePropertyQueryManager.ConvertFieldQuery(mr_TableQueryProvider.Extensions.Creator.PropertyQueryCreator.PrimaryKey.Key.GetValue(currentElement))};";
 
                     sqlCommand.CommandText = createElementQuery;
 
@@ -156,11 +156,11 @@ namespace DatabaseManager
 
         public void DeleteAll()
         {
-            TablePropertyQueryManager propertyQueryCreator = mr_TableQueryProvider.Creator.PropertyQueryCreator;
+            TablePropertyQueryManager propertyQueryCreator = mr_TableQueryProvider.Extensions.Creator.PropertyQueryCreator;
 
             string createElementQuery = $"DELETE FROM {propertyQueryCreator.GetTableName()};";
 
-            mr_TableQueryProvider.Connection.ExecuteNonQuery(createElementQuery);
+            mr_TableQueryProvider.Extensions.Connection.ExecuteNonQuery(createElementQuery);
         }
 
         public IEnumerator<Table> GetEnumerator() => ((IEnumerable<Table>)mr_TableQueryProvider.Execute<Table[]>(mr_Expression)).GetEnumerator();

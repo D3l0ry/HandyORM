@@ -2,38 +2,31 @@
 using System.Linq;
 using System.Linq.Expressions;
 using DatabaseManager.QueryInteractions;
+using DatabaseManager.TableInteractions;
+
 using Microsoft.Data.SqlClient;
 
 namespace DatabaseManager
 {
-    internal class TableQueryProvider : IDatabaseQueryProvider
+    internal class TableQueryProvider<TElement> : IDatabaseQueryProvider<TElement>, IDatabaseQueryHelper
     {
         private readonly SqlConnection mr_SqlConnection;
-        private readonly TableQueryCreator mr_TableQueryCreator;
-        private readonly ExpressionTranslator mr_TableQueryTranslator;
-        private readonly TableConvertManager mr_TableConvertManager;
+        private readonly TableProviderExtensions mr_ProviderExtensions;
 
-        internal TableQueryProvider(Type tableType, SqlConnection sqlConnection)
+        internal TableQueryProvider(SqlConnection sqlConnection)
         {
+            Type tableType = typeof(TElement);
+
             if (tableType is null)
             {
                 throw new ArgumentNullException(nameof(tableType));
             }
 
             mr_SqlConnection = sqlConnection;
-
-            mr_TableQueryCreator = new TableQueryCreator(tableType, this);
-            mr_TableQueryTranslator = new ExpressionTranslator(this);
-            mr_TableConvertManager = new TableConvertManager(tableType, this);
+            mr_ProviderExtensions = new TableProviderExtensions(tableType, sqlConnection);
         }
 
-        public SqlConnection Connection => mr_SqlConnection;
-
-        public TableQueryCreator Creator => mr_TableQueryCreator;
-
-        public ExpressionTranslator Translator => mr_TableQueryTranslator;
-
-        public TableConvertManager Converter => mr_TableConvertManager;
+        public TableProviderExtensions Extensions => mr_ProviderExtensions;
 
         private SqlDataReader GetDataReader(string query)
         {
@@ -55,11 +48,11 @@ namespace DatabaseManager
 
             if (resultType.IsArray)
             {
-                result = (TResult)mr_TableConvertManager.GetObjects(dataReader);
+                result = (TResult)mr_ProviderExtensions.Converter.GetObjects(dataReader);
             }
             else
             {
-                result = (TResult)mr_TableConvertManager.GetObject(dataReader);
+                result = (TResult)mr_ProviderExtensions.Converter.GetObject(dataReader);
             }
 
             dataReader.Close();
@@ -67,24 +60,11 @@ namespace DatabaseManager
             return result;
         }
 
-        IDatabaseQueryable<TElement> IDatabaseQueryProvider.CreateQuery<TElement>(Expression expression) =>
-            new TableManager<TElement>(this, expression, mr_SqlConnection);
-
-        public TResult Execute<TResult>(string query)
-        {
-            if (string.IsNullOrWhiteSpace(query))
-            {
-                throw new ArgumentNullException(nameof(query));
-            }
-
-            SqlDataReader dataReader = GetDataReader(query);
-
-            return Convert<TResult>(dataReader);
-        }
+        IDatabaseQueryable<TElement> IDatabaseQueryProvider<TElement>.CreateQuery(Expression expression) => new TableManager<TElement>(this, expression, mr_SqlConnection);
 
         public TResult Execute<TResult>(Expression expression)
         {
-            string query = Translator.Translate(expression);
+            string query = mr_ProviderExtensions.Translator.Translate(expression);
 
             SqlDataReader dataReader = GetDataReader(query);
 
