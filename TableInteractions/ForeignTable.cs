@@ -1,23 +1,24 @@
 ﻿using System;
-using System.Linq;
 using System.Reflection;
 using System.Text;
+
+using DatabaseManager.Interfaces;
 using DatabaseManager.QueryInteractions;
-using DatabaseManager.TableInteractions;
+
 using Microsoft.Data.SqlClient;
 
 namespace DatabaseManager
 {
-    public class ForeignTable<Table> where Table : class
+    public class ForeignTable<Table> where Table : class, new()
     {
         private readonly object mr_MainTable;
         private readonly PropertyInfo mr_MainTableForeignKey;
-        private readonly TableProviderExtensions mr_TableQueryProvider;
+        private readonly ITableProviderExtensions mr_TableProviderExtensions;
         private readonly ColumnAttribute mr_ColumnAttribute;
 
         private Table m_Value;
 
-        internal ForeignTable(object mainTable, PropertyInfo mainTableForeignKey, TableProviderExtensions queryProvider, ColumnAttribute propertyAttribute)
+        internal ForeignTable(object mainTable, PropertyInfo mainTableForeignKey, ITableProviderExtensions tableProvider, ColumnAttribute propertyAttribute)
         {
             if (mainTable is null)
             {
@@ -29,9 +30,9 @@ namespace DatabaseManager
                 throw new ArgumentNullException(nameof(mainTableForeignKey));
             }
 
-            if (queryProvider is null)
+            if (tableProvider is null)
             {
-                throw new ArgumentNullException(nameof(queryProvider));
+                throw new ArgumentNullException(nameof(tableProvider));
             }
 
             if (propertyAttribute is null)
@@ -41,7 +42,7 @@ namespace DatabaseManager
 
             mr_MainTable = mainTable;
             mr_MainTableForeignKey = mainTableForeignKey;
-            mr_TableQueryProvider = queryProvider;
+            mr_TableProviderExtensions = tableProvider;
             mr_ColumnAttribute = propertyAttribute;
         }
 
@@ -49,7 +50,7 @@ namespace DatabaseManager
         {
             StringBuilder stringBuilder = new StringBuilder();
 
-            stringBuilder.Append(TableQueryCreator.CreateForeignTableQuery(mr_TableQueryProvider.Creator, mr_ColumnAttribute));
+            stringBuilder.Append(TableQueryCreator.CreateForeignTableQuery(mr_TableProviderExtensions.Creator, mr_ColumnAttribute));
             stringBuilder.Append(TablePropertyQueryManager.ConvertFieldQuery(mr_MainTableForeignKey.GetValue(mr_MainTable)));
             stringBuilder.Append(";");
 
@@ -67,9 +68,9 @@ namespace DatabaseManager
 
                 string newQuery = GetForeignTableQuery();
 
-                SqlDataReader dataReader = mr_TableQueryProvider.Connection.ExecuteReader(newQuery);
+                SqlDataReader dataReader = mr_TableProviderExtensions.Connection.ExecuteReader(newQuery);
 
-                m_Value = (Table)mr_TableQueryProvider.Converter.GetObject(dataReader);
+                m_Value = (Table)mr_TableProviderExtensions.Converter.GetObject(dataReader);
 
                 return m_Value;
             }

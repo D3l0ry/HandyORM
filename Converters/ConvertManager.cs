@@ -1,26 +1,29 @@
-﻿ using System;
+﻿using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using System.Runtime.CompilerServices;
+
 using Microsoft.Data.SqlClient;
 
 namespace DatabaseManager
 {
     public class ConvertManager
     {
-        protected readonly Type mr_Type;
+        private readonly Type mr_Type;
 
         public ConvertManager(Type type)
         {
-            if (type is null)
+            if (type == null)
             {
                 throw new ArgumentNullException(nameof(type));
             }
 
             mr_Type = type;
         }
+
+        protected Type ObjectType => mr_Type;
 
         /// <summary>
         /// Получение массива объектов из таблицы
@@ -68,7 +71,7 @@ namespace DatabaseManager
         {
             object value = null;
 
-            if(dataReader.Read())
+            if (dataReader.Read())
             {
                 value = GetInternalObject(dataReader);
             }

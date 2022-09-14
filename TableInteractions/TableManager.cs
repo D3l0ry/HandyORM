@@ -4,12 +4,14 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Text;
+
 using DatabaseManager.QueryInteractions;
+
 using Microsoft.Data.SqlClient;
 
 namespace DatabaseManager
 {
-    public class TableManager<Table> : IDatabaseQueryable<Table>
+    public class TableManager<Table> : IDatabaseQueryable<Table> where Table : class, new()
     {
         private readonly TableQueryProvider<Table> mr_TableQueryProvider;
         private readonly Expression mr_Expression;
@@ -21,8 +23,6 @@ namespace DatabaseManager
             mr_TableQueryProvider = tableQueryProvider ?? new TableQueryProvider<Table>(sqlConnection);
             mr_Expression = expression ?? Expression.Constant(this);
         }
-
-        public Type ElementType => typeof(Table);
 
         Expression IDatabaseQueryable.Expression => mr_Expression;
 
@@ -40,6 +40,8 @@ namespace DatabaseManager
 
         public IdType AddAndOutputId<IdType>(Table newElement) where IdType : struct
         {
+            Type idType = typeof(IdType);
+
             TablePropertyQueryManager propertyQueryCreator = mr_TableQueryProvider.Extensions.Creator.PropertyQueryCreator;
 
             string createElementQuery = $"INSERT INTO {propertyQueryCreator.GetTableName()} " +
@@ -48,7 +50,9 @@ namespace DatabaseManager
 
             SqlDataReader dataReader = mr_TableQueryProvider.Extensions.Connection.ExecuteReader(createElementQuery);
 
-            return mr_TableQueryProvider.Extensions.Connection.ConvertReader<IdType>(dataReader);
+            ConvertManager convertManager = new ConvertManager(idType);
+
+            return (IdType)convertManager.GetObject(dataReader);
         }
 
         public void AddRange(IEnumerable<Table> newElements)

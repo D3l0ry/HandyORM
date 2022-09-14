@@ -1,9 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 
+using DatabaseManager.Interfaces;
+using DatabaseManager.QueryInteractions;
 using DatabaseManager.TableInteractions;
 
 using Microsoft.Data.SqlClient;
@@ -12,9 +13,14 @@ namespace DatabaseManager
 {
     public class TableConvertManager : ConvertManager
     {
-        private readonly TableProviderExtensions mr_QueryProvider;
+        private readonly ITableProviderExtensions mr_TableProviderExtensions;
+        private readonly Dictionary<string, ITableProviderExtensions> mr_ForeignTableProviderExtensions;
 
-        internal TableConvertManager(Type tableType, TableProviderExtensions queryProvider) : base(tableType) => mr_QueryProvider = queryProvider;
+        internal TableConvertManager(Type tableType, ITableProviderExtensions tableProvider) : base(tableType)
+        {
+            mr_TableProviderExtensions = tableProvider;
+            mr_ForeignTableProviderExtensions = new Dictionary<string, ITableProviderExtensions>();
+        }
 
         /// <summary>
         /// Получение объектов из внешней таблицы
@@ -37,36 +43,36 @@ namespace DatabaseManager
                 throw new InvalidCastException($"{foreignTableType} не соответствует типу {currentProperty.PropertyType}");
             }
 
-            TableProviderExtensions foreignTableConvertManager = GetOrCreateForeignTableConvertManager(currentProperty, currentColumnAttribute);
-
-            PropertyInfo mainTableForeignKeyProperty = mr_QueryProvider.Creator.PropertyQueryCreator
+            PropertyInfo mainTableForeignKeyProperty = mr_TableProviderExtensions.Creator.PropertyQueryCreator
                 .GetProperty(currentColumnAttribute.ForeignKeyName).Key;
 
+            ITableProviderExtensions foreignTableProviderExtensions =
+                GetOrCreateForeignTableProviderExtensions(currentColumnAttribute);
+
             object foreignTable = foreignTableType
-                .GetConstructor(BindingFlags.NonPublic | BindingFlags.Instance, null, new Type[] { typeof(object), typeof(PropertyInfo), typeof(TableProviderExtensions), typeof(ColumnAttribute) }, null)
-                .Invoke(new object[] { mainTable, mainTableForeignKeyProperty, foreignTableConvertManager, currentColumnAttribute });
+                .GetConstructor(BindingFlags.NonPublic | BindingFlags.Instance, null, new Type[]
+                    { typeof(object), typeof(PropertyInfo), typeof(ITableProviderExtensions), typeof(ColumnAttribute) }, null)
+                .Invoke(new object[] { mainTable, mainTableForeignKeyProperty, foreignTableProviderExtensions, currentColumnAttribute });
 
             currentProperty.SetValue(mainTable, foreignTable);
         }
 
-        /// <summary>
-        /// Создание запроса для внешней таблицы, используемой в главной таблице
-        /// </summary>
-        /// <param name="currentProperty"></param>
-        /// <param name="propertyAttribute"></param>
-        /// <returns></returns>
-        private TableProviderExtensions GetOrCreateForeignTableConvertManager(PropertyInfo currentProperty, ColumnAttribute propertyAttribute)
+        private ITableProviderExtensions GetOrCreateForeignTableProviderExtensions(ColumnAttribute propertyAttribute)
         {
-            if (mr_QueryProvider.Creator.ForeignTables.ContainsKey(currentProperty.Name))
+            if (mr_ForeignTableProviderExtensions.ContainsKey(propertyAttribute.ForeignTable.Name))
             {
-                return mr_QueryProvider.Creator.ForeignTables[currentProperty.Name];
+                return mr_ForeignTableProviderExtensions[propertyAttribute.ForeignTable.Name];
             }
 
-            TableProviderExtensions foreignTableConvertManager = new TableProviderExtensions(propertyAttribute.ForeignTable, mr_QueryProvider.Connection);
+            TableQueryCreator foreignTableQueryCreator = mr_TableProviderExtensions.Creator
+                .GetOrCreateForeignTableQueryCreator(propertyAttribute);
 
-            mr_QueryProvider.Creator.ForeignTables.Add(currentProperty.Name, foreignTableConvertManager);
+            TableProviderExtensions newForeignTableProviderExtensions =
+                new TableProviderExtensions(propertyAttribute.ForeignTable, mr_TableProviderExtensions.Connection, foreignTableQueryCreator);
 
-            return foreignTableConvertManager;
+            mr_ForeignTableProviderExtensions.Add(propertyAttribute.ForeignTable.Name, newForeignTableProviderExtensions);
+
+            return newForeignTableProviderExtensions;
         }
 
         /// <summary>
@@ -77,11 +83,11 @@ namespace DatabaseManager
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         protected override object GetInternalObject(SqlDataReader dataReader)
         {
-            object table = Activator.CreateInstance(mr_Type);
+            object table = Activator.CreateInstance(ObjectType);
 
             ushort columnOrdinal = 0;
 
-            foreach (KeyValuePair<PropertyInfo, ColumnAttribute> currentKeyValuePair in mr_QueryProvider.Creator.PropertyQueryCreator.Properties)
+            foreach (KeyValuePair<PropertyInfo, ColumnAttribute> currentKeyValuePair in mr_TableProviderExtensions.Creator.PropertyQueryCreator.Properties)
             {
                 PropertyInfo currentProperty = currentKeyValuePair.Key;
                 ColumnAttribute currentColumnAttribute = currentKeyValuePair.Value;

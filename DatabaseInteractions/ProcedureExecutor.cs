@@ -2,7 +2,10 @@
 using System.Data;
 using System.Diagnostics;
 using System.Reflection;
-using DatabaseManager.QueryInteractions;
+
+using DatabaseManager.Interfaces;
+using DatabaseManager.TableInteractions;
+
 using Microsoft.Data.SqlClient;
 
 namespace DatabaseManager.DatabaseInteractions
@@ -69,6 +72,75 @@ namespace DatabaseManager.DatabaseInteractions
             }
         }
 
+        private static bool IsDatabaseTableType(Type type)
+        {
+            if (type == null)
+            {
+                throw new ArgumentNullException(nameof(type));
+            }
+
+            Type elementType = type;
+
+            if (type.IsArray)
+            {
+                elementType = type.GetElementType();
+            }
+
+            return elementType.GetCustomAttribute<TableAttribute>() != null;
+        }
+
+        private ITableProviderExtensions GetTableProviderExtensions(Type type) => new TableProviderExtensions(type, mr_SqlConnection);
+
+        private TResult ConvertReader<TResult>(SqlDataReader dataReader)
+        {
+            if (dataReader == null)
+            {
+                throw new ArgumentNullException(nameof(dataReader));
+            }
+
+            Type resultType = typeof(TResult);
+            TResult result;
+
+            if (IsDatabaseTableType(resultType))
+            {
+                ITableProviderExtensions tableQueryProvider;
+
+                if (resultType.IsArray)
+                {
+                    tableQueryProvider = GetTableProviderExtensions(resultType.GetElementType());
+
+                    result = (TResult)tableQueryProvider.Converter.GetObjects(dataReader);
+                }
+                else
+                {
+                    tableQueryProvider = GetTableProviderExtensions(resultType);
+
+                    result = (TResult)tableQueryProvider.Converter.GetObject(dataReader);
+                }
+            }
+            else
+            {
+                ConvertManager convertManager;
+
+                if (resultType.IsArray)
+                {
+                    convertManager = new ConvertManager(resultType.GetElementType());
+
+                    result = (TResult)convertManager.GetObjects(dataReader);
+                }
+                else
+                {
+                    convertManager = new ConvertManager(resultType);
+
+                    result = (TResult)convertManager.GetObject(dataReader);
+                }
+            }
+
+            dataReader.Close();
+
+            return result;
+        }
+
         /// <summary>
         /// Метод для вызова процедур базы данных.
         /// Если процедура имеет принимаемые аргументы, то ExecuteProcedure должен обязательно вызываться в методе
@@ -88,7 +160,7 @@ namespace DatabaseManager.DatabaseInteractions
 
             SqlDataReader dataReader = dataCommand.ExecuteReader();
 
-            T result = mr_SqlConnection.ConvertReader<T>(dataReader);
+            T result = ConvertReader<T>(dataReader);
 
             dataCommand.Dispose();
             dataReader.Close();

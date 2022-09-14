@@ -5,6 +5,9 @@ namespace DatabaseManager
     [AttributeUsage(AttributeTargets.Parameter)]
     public class ParameterAttribute : Attribute
     {
+        /// <summary>
+        /// Имя аргумента в хранимой процедуре
+        /// </summary>
         internal string Name { get; set; }
 
         public ParameterAttribute(string name)

@@ -1,5 +1,6 @@
 ﻿using System.Linq.Expressions;
 using System.Reflection;
+
 using Microsoft.Data.SqlClient;
 
 namespace System.Linq
@@ -10,14 +11,6 @@ namespace System.Linq
         private static MethodInfo GetMethodInfo<T1, T2>(Func<T1, T2> func, T1 unused) => func.Method;
 
         private static MethodInfo GetMethodInfo<T1, T2, T3>(Func<T1, T2, T3> func, T1 unused, T2 unused2) => func.Method;
-
-        private static MethodInfo GetMethodInfo<T1, T2, T3, T4>(Func<T1, T2, T3, T4> func, T1 unused, T2 unused2, T3 unused3) => func.Method;
-
-        private static MethodInfo GetMethodInfo<T1, T2, T3, T4, T5>(Func<T1, T2, T3, T4, T5> func, T1 unused, T2 unused2, T3 unused3, T4 unused4) => func.Method;
-
-        private static MethodInfo GetMethodInfo<T1, T2, T3, T4, T5, T6>(Func<T1, T2, T3, T4, T5, T6> func, T1 unused, T2 unused2, T3 unused3, T4 unused4, T5 unused5) => func.Method;
-
-        private static MethodInfo GetMethodInfo<T1, T2, T3, T4, T5, T6, T7>(Func<T1, T2, T3, T4, T5, T6, T7> func, T1 unused, T2 unused2, T3 unused3, T4 unused4, T5 unused5, T6 unused6) => func.Method;
         #endregion
 
         internal static void CheckDataValue(this SqlDataReader dataReader, Expression expression)
@@ -44,11 +37,11 @@ namespace System.Linq
             switch (methodName)
             {
                 case "First" when !dataReader.HasRows:
-                    throw new InvalidOperationException("Исходная последовательность пуста");
+                throw new InvalidOperationException("Исходная последовательность пуста");
             }
         }
 
-        public static IDatabaseQueryable<TSource> Where<TSource>(this IDatabaseQueryable<TSource> source, Expression<Func<TSource, bool>> predicate)
+        public static IDatabaseQueryable<TSource> Where<TSource>(this IDatabaseQueryable<TSource> source, Expression<Func<TSource, bool>> predicate) where TSource : class
         {
             if (source is null)
             {
@@ -69,7 +62,7 @@ namespace System.Linq
                     );
         }
 
-        public static TSource First<TSource>(this IDatabaseQueryable<TSource> source)
+        public static TSource First<TSource>(this IDatabaseQueryable<TSource> source) where TSource : class
         {
             if (source is null)
             {
@@ -85,7 +78,7 @@ namespace System.Linq
                 );
         }
 
-        public static TSource First<TSource>(this IDatabaseQueryable<TSource> source, Expression<Func<TSource, bool>> predicate)
+        public static TSource First<TSource>(this IDatabaseQueryable<TSource> source, Expression<Func<TSource, bool>> predicate) where TSource : class
         {
             if (source is null)
             {
@@ -106,7 +99,7 @@ namespace System.Linq
                 );
         }
 
-        public static TSource FirstOrDefault<TSource>(this IDatabaseQueryable<TSource> source)
+        public static TSource FirstOrDefault<TSource>(this IDatabaseQueryable<TSource> source) where TSource : class
         {
             if (source is null)
             {
@@ -122,7 +115,7 @@ namespace System.Linq
                 );
         }
 
-        public static TSource FirstOrDefault<TSource>(this IDatabaseQueryable<TSource> source, Expression<Func<TSource, bool>> predicate)
+        public static TSource FirstOrDefault<TSource>(this IDatabaseQueryable<TSource> source, Expression<Func<TSource, bool>> predicate) where TSource : class
         {
             if (source is null)
             {

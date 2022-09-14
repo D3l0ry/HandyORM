@@ -1,6 +1,4 @@
 ﻿using System;
-using System.Reflection;
-using DatabaseManager.TableInteractions;
 
 using Microsoft.Data.SqlClient;
 
@@ -8,23 +6,6 @@ namespace DatabaseManager.QueryInteractions
 {
     internal static class QueryExtensions
     {
-        private static bool IsDatabaseTableType(this Type type)
-        {
-            if (type == null)
-            {
-                throw new ArgumentNullException(nameof(type));
-            }
-
-            Type elementType = type;
-
-            if (type.IsArray)
-            {
-                elementType = type.GetElementType();
-            }
-
-            return elementType.GetCustomAttribute<TableAttribute>() != null;
-        }
-
         public static void ExecuteNonQuery(this SqlConnection sqlConnection, string query)
         {
             if (sqlConnection == null)
@@ -63,61 +44,6 @@ namespace DatabaseManager.QueryInteractions
 
                 return sqlCommand.ExecuteReader();
             }
-        }
-
-        public static TResult ConvertReader<TResult>(this SqlConnection sqlConnection, SqlDataReader dataReader)
-        {
-            if (sqlConnection == null)
-            {
-                throw new ArgumentNullException(nameof(sqlConnection));
-            }
-
-            if (dataReader == null)
-            {
-                throw new ArgumentNullException(nameof(dataReader));
-            }
-
-            Type resultType = typeof(TResult);
-            TResult result;
-
-            if (resultType.IsDatabaseTableType())
-            {
-                TableProviderExtensions tableQueryProvider;
-
-                if (resultType.IsArray)
-                {
-                    tableQueryProvider = new TableProviderExtensions(resultType.GetElementType(), sqlConnection);
-
-                    result = (TResult)tableQueryProvider.Converter.GetObjects(dataReader);
-                }
-                else
-                {
-                    tableQueryProvider = new TableProviderExtensions(resultType, sqlConnection);
-
-                    result = (TResult)tableQueryProvider.Converter.GetObject(dataReader);
-                }
-            }
-            else
-            {
-                ConvertManager convertManager;
-
-                if (resultType.IsArray)
-                {
-                    convertManager = new ConvertManager(resultType.GetElementType());
-
-                    result = (TResult)convertManager.GetObjects(dataReader);
-                }
-                else
-                {
-                    convertManager = new ConvertManager(resultType);
-
-                    result = (TResult)convertManager.GetObject(dataReader);
-                }
-            }
-
-            dataReader.Close();
-
-            return result;
         }
     }
 }

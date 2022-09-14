@@ -1,14 +1,13 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Text;
 
+using DatabaseManager.Interfaces;
 using DatabaseManager.QueryInteractions;
 
 using Microsoft.Data.SqlClient;
 
 namespace DatabaseManager.TableInteractions
 {
-    internal class TableProviderExtensions
+    internal class TableProviderExtensions : ITableProviderExtensions
     {
         private readonly SqlConnection mr_SqlConnection;
         private readonly TableQueryCreator mr_TableQueryCreator;
@@ -17,14 +16,42 @@ namespace DatabaseManager.TableInteractions
 
         public TableProviderExtensions(Type tableType, SqlConnection sqlConnection)
         {
-            if(tableType == null)
+            if (tableType == null)
             {
                 throw new ArgumentNullException(nameof(tableType));
             }
 
+            if (sqlConnection == null)
+            {
+                throw new ArgumentNullException(nameof(sqlConnection));
+            }
+
             mr_SqlConnection = sqlConnection;
-            mr_TableQueryCreator = new TableQueryCreator(tableType, this);
-            mr_TableQueryTranslator = new ExpressionTranslator(this);
+            mr_TableQueryCreator = new TableQueryCreator(tableType);
+            mr_TableQueryTranslator = new ExpressionTranslator(mr_TableQueryCreator);
+            mr_TableConvertManager = new TableConvertManager(tableType, this);
+        }
+
+        public TableProviderExtensions(Type tableType, SqlConnection sqlConnection, TableQueryCreator tableQueryCreator)
+        {
+            if (tableType == null)
+            {
+                throw new ArgumentNullException(nameof(tableType));
+            }
+
+            if (sqlConnection == null)
+            {
+                throw new ArgumentNullException(nameof(sqlConnection));
+            }
+
+            if (tableQueryCreator == null)
+            {
+                throw new ArgumentNullException(nameof(tableQueryCreator));
+            }
+
+            mr_SqlConnection = sqlConnection;
+            mr_TableQueryCreator = tableQueryCreator;
+            mr_TableQueryTranslator = new ExpressionTranslator(mr_TableQueryCreator);
             mr_TableConvertManager = new TableConvertManager(tableType, this);
         }
 

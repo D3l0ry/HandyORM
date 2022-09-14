@@ -1,20 +1,17 @@
 ﻿using System.Linq.Expressions;
 
-using DatabaseManager.QueryInteractions;
-using DatabaseManager;
-using Microsoft.Data.SqlClient;
-using DatabaseManager.TableInteractions;
+using DatabaseManager.Interfaces;
 
 namespace System.Linq
 {
     internal interface IDatabaseQueryHelper
     {
-        TableProviderExtensions Extensions { get; }
+        ITableProviderExtensions Extensions { get; }
     }
 
     public interface IDatabaseQueryProvider
     {
-        TResult Execute<TResult>(Expression expression);
+        TResult Execute<TResult>(Expression expression) where TResult : class;
     }
 
     public interface IDatabaseQueryProvider<TElement> : IDatabaseQueryProvider

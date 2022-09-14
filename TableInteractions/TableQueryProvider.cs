@@ -1,14 +1,15 @@
 ﻿using System;
 using System.Linq;
 using System.Linq.Expressions;
-using DatabaseManager.QueryInteractions;
+
+using DatabaseManager.Interfaces;
 using DatabaseManager.TableInteractions;
 
 using Microsoft.Data.SqlClient;
 
 namespace DatabaseManager
 {
-    internal class TableQueryProvider<TElement> : IDatabaseQueryProvider<TElement>, IDatabaseQueryHelper
+    internal class TableQueryProvider<TElement> : IDatabaseQueryProvider<TElement>, IDatabaseQueryHelper where TElement : class, new()
     {
         private readonly SqlConnection mr_SqlConnection;
         private readonly TableProviderExtensions mr_ProviderExtensions;
@@ -17,16 +18,11 @@ namespace DatabaseManager
         {
             Type tableType = typeof(TElement);
 
-            if (tableType is null)
-            {
-                throw new ArgumentNullException(nameof(tableType));
-            }
-
             mr_SqlConnection = sqlConnection;
             mr_ProviderExtensions = new TableProviderExtensions(tableType, sqlConnection);
         }
 
-        public TableProviderExtensions Extensions => mr_ProviderExtensions;
+        public ITableProviderExtensions Extensions => mr_ProviderExtensions;
 
         private SqlDataReader GetDataReader(string query)
         {
@@ -41,7 +37,7 @@ namespace DatabaseManager
             return dataReader;
         }
 
-        private TResult Convert<TResult>(SqlDataReader dataReader)
+        private TResult Convert<TResult>(SqlDataReader dataReader) where TResult : class
         {
             Type resultType = typeof(TResult);
             TResult result;
@@ -62,7 +58,7 @@ namespace DatabaseManager
 
         IDatabaseQueryable<TElement> IDatabaseQueryProvider<TElement>.CreateQuery(Expression expression) => new TableManager<TElement>(this, expression, mr_SqlConnection);
 
-        public TResult Execute<TResult>(Expression expression)
+        public TResult Execute<TResult>(Expression expression) where TResult : class
         {
             string query = mr_ProviderExtensions.Translator.Translate(expression);
 

@@ -220,18 +220,18 @@ namespace DatabaseManager.QueryInteractions
                 case TypeCode.UInt16:
                 case TypeCode.UInt32:
                 case TypeCode.UInt64:
-                    return value.ToString();
+                return value.ToString();
                 case TypeCode.Single:
                 case TypeCode.Decimal:
                 case TypeCode.Double:
-                    return value.ToString().Replace(',', '.');
+                return value.ToString().Replace(',', '.');
                 case TypeCode.Boolean:
                 case TypeCode.String:
                 case TypeCode.DateTime:
                 case TypeCode.Object:
-                    return $"'{value}'";
+                return $"'{value}'";
                 default:
-                    throw new NotSupportedException($"The constant for '{value}' is not supported");
+                throw new NotSupportedException($"The constant for '{value}' is not supported");
             }
         }
     }

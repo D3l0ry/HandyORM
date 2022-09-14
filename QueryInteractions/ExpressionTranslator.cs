@@ -5,26 +5,24 @@ using System.Linq.Expressions;
 using System.Reflection;
 using System.Text;
 
-using DatabaseManager.TableInteractions;
-
 namespace DatabaseManager.QueryInteractions
 {
     internal class ExpressionTranslator : ExpressionVisitor
     {
-        private readonly TableProviderExtensions mr_TableQueryProvider;
+        private readonly TableQueryCreator mr_TableQueryCreator;
         private StringBuilder m_TranslatedQuery;
 
-        public ExpressionTranslator(TableProviderExtensions queryProvider) => mr_TableQueryProvider = queryProvider;
+        public ExpressionTranslator(TableQueryCreator tableQueryCreator) => mr_TableQueryCreator = tableQueryCreator;
 
         internal string Translate(Expression expression, bool getMainQuery = true)
         {
             if (getMainQuery)
             {
-                m_TranslatedQuery = new StringBuilder(mr_TableQueryProvider.Creator.MainQuery);
+                m_TranslatedQuery = new StringBuilder(mr_TableQueryCreator.MainQuery);
             }
             else
             {
-                string mainQuery = $"FROM {mr_TableQueryProvider.Creator.PropertyQueryCreator.GetTableName()} WHERE ";
+                string mainQuery = $"FROM {mr_TableQueryCreator.PropertyQueryCreator.GetTableName()} WHERE ";
 
                 m_TranslatedQuery = new StringBuilder(mainQuery);
             }
@@ -69,11 +67,11 @@ namespace DatabaseManager.QueryInteractions
             switch (method.Name)
             {
                 case "Where":
-                    return this.CallWhereMethod(node, m_TranslatedQuery);
+                return this.CallWhereMethod(node, m_TranslatedQuery);
 
                 case "First":
                 case "FirstOrDefault":
-                    return this.CallFirstMethod(node, m_TranslatedQuery);
+                return this.CallFirstMethod(node, m_TranslatedQuery);
             }
 
             throw new NotSupportedException($"Указанный метод {method.Name} не поддерживается");
@@ -87,44 +85,44 @@ namespace DatabaseManager.QueryInteractions
             {
                 case ExpressionType.And:
                 case ExpressionType.AndAlso:
-                    m_TranslatedQuery.Append(" AND ");
-                    break;
+                m_TranslatedQuery.Append(" AND ");
+                break;
                 case ExpressionType.Or:
                 case ExpressionType.OrElse:
-                    m_TranslatedQuery.Append(" OR ");
-                    break;
+                m_TranslatedQuery.Append(" OR ");
+                break;
                 case ExpressionType.Equal:
-                    m_TranslatedQuery.Append(" = ");
-                    break;
+                m_TranslatedQuery.Append(" = ");
+                break;
                 case ExpressionType.NotEqual:
-                    if (binary.Right is ConstantExpression constant)
+                if (binary.Right is ConstantExpression constant)
+                {
+                    if (constant.Value is null)
                     {
-                        if (constant.Value is null)
-                        {
-                            m_TranslatedQuery.Append(" IS NOT ");
+                        m_TranslatedQuery.Append(" IS NOT ");
 
-                            break;
-                        }
+                        break;
                     }
+                }
 
-                    m_TranslatedQuery.Append(" <> ");
-                    break;
+                m_TranslatedQuery.Append(" <> ");
+                break;
                 case ExpressionType.LessThan:
-                    m_TranslatedQuery.Append(" < ");
-                    break;
+                m_TranslatedQuery.Append(" < ");
+                break;
                 case ExpressionType.LessThanOrEqual:
-                    m_TranslatedQuery.Append(" <= ");
-                    break;
+                m_TranslatedQuery.Append(" <= ");
+                break;
                 case ExpressionType.GreaterThan:
-                    m_TranslatedQuery.Append(" > ");
-                    break;
+                m_TranslatedQuery.Append(" > ");
+                break;
                 case ExpressionType.GreaterThanOrEqual:
-                    m_TranslatedQuery.Append(" >= ");
-                    break;
+                m_TranslatedQuery.Append(" >= ");
+                break;
                 case ExpressionType.IsTrue:
-                    break;
+                break;
                 default:
-                    throw new NotSupportedException($"The binary operator '{binary.NodeType}' is not supported");
+                throw new NotSupportedException($"The binary operator '{binary.NodeType}' is not supported");
             }
 
             Visit(binary.Right);
@@ -144,19 +142,19 @@ namespace DatabaseManager.QueryInteractions
             switch (member.Expression.NodeType)
             {
                 case ExpressionType.Parameter:
-                    GetProperty(member);
+                GetProperty(member);
 
-                    return member;
+                return member;
 
                 case ExpressionType.New:
-                    Visit(member.Expression);
-                    return member;
+                Visit(member.Expression);
+                return member;
 
                 case ExpressionType.MemberAccess:
                 case ExpressionType.Constant:
                 case ExpressionType.TypeAs:
-                    m_TranslatedQuery.Append(GetFieldFromLambda(member));
-                    return member;
+                m_TranslatedQuery.Append(GetFieldFromLambda(member));
+                return member;
             }
 
             return member;
@@ -176,9 +174,7 @@ namespace DatabaseManager.QueryInteractions
 
         internal void GetProperty(MemberExpression member)
         {
-            KeyValuePair<PropertyInfo, ColumnAttribute> selectedProperty =
-                mr_TableQueryProvider
-                .Creator
+            KeyValuePair<PropertyInfo, ColumnAttribute> selectedProperty = mr_TableQueryCreator
                 .PropertyQueryCreator
                 .GetProperty(member.Member as PropertyInfo);
 
@@ -186,17 +182,14 @@ namespace DatabaseManager.QueryInteractions
 
             if (selectedProperty.Value.IsForeignColumn && selectedProperty.Value.ForeignTable != null)
             {
-                tableProperty = mr_TableQueryProvider
-                   .Creator
-                   .ForeignTables[selectedProperty.Value.ForeignTable.Name]
-                   .Creator
+                tableProperty = mr_TableQueryCreator
+                   .ForeignTablesQueryCreator[selectedProperty.Value.ForeignTable.Name]
                    .PropertyQueryCreator
                    .GetPropertyName(selectedProperty);
             }
             else
             {
-                tableProperty = mr_TableQueryProvider
-                    .Creator
+                tableProperty = mr_TableQueryCreator
                     .PropertyQueryCreator
                     .GetPropertyName(selectedProperty);
             }

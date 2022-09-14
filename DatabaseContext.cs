@@ -1,13 +1,16 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
+
 using DatabaseManager.DatabaseInteractions;
+
 using Microsoft.Data.SqlClient;
 
 namespace DatabaseManager
 {
     public abstract class DatabaseContext : IDisposable
     {
-        private readonly Dictionary<string, object> mr_Tables;
+        private readonly Dictionary<Type, IDatabaseQueryable> mr_Tables;
         private readonly Dictionary<string, ProcedureExecutor> mr_Procedures;
 
         internal readonly SqlConnection mr_SqlConnection;
@@ -19,7 +22,7 @@ namespace DatabaseManager
                 throw new ArgumentNullException(nameof(connection));
             }
 
-            mr_Tables = new Dictionary<string, object>();
+            mr_Tables = new Dictionary<Type, IDatabaseQueryable>();
             mr_Procedures = new Dictionary<string, ProcedureExecutor>();
 
             mr_SqlConnection = new SqlConnection(connection);
@@ -55,18 +58,18 @@ namespace DatabaseManager
             return selectedProcedure.Execute<T>(arguments);
         }
 
-        protected TableManager<Table> GetTable<Table>()
+        protected TableManager<Table> GetTable<Table>() where Table : class, new()
         {
             Type tableType = typeof(Table);
 
-            if (mr_Tables.TryGetValue(tableType.Name, out object selectedTable))
+            if (mr_Tables.TryGetValue(tableType, out IDatabaseQueryable selectedTable))
             {
                 return selectedTable as TableManager<Table>;
             }
 
             TableManager<Table> newTable = new TableManager<Table>(mr_SqlConnection);
 
-            mr_Tables.Add(tableType.Name, newTable);
+            mr_Tables.Add(tableType, newTable);
 
             return newTable;
         }

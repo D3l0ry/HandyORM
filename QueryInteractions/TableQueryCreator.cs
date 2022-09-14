@@ -4,23 +4,19 @@ using System.Linq;
 using System.Reflection;
 using System.Text;
 
-using DatabaseManager.TableInteractions;
-
 namespace DatabaseManager.QueryInteractions
 {
     internal class TableQueryCreator
     {
-        private readonly TableProviderExtensions mr_TableQueryProvider;
-
         private readonly TableAttribute mr_TableAttribute;
 
-        private readonly Dictionary<string, TableProviderExtensions> mr_NestedTableQueries;
+        private readonly Dictionary<string, TableQueryCreator> mr_ForeignTableQueryCreator;
 
         private readonly TablePropertyQueryManager mr_PropertyQueryCreator;
 
         private readonly StringBuilder mr_MainQuery;
 
-        public TableQueryCreator(Type tableType, TableProviderExtensions queryProvider)
+        public TableQueryCreator(Type tableType)
         {
             if (tableType is null)
             {
@@ -34,11 +30,9 @@ namespace DatabaseManager.QueryInteractions
                 throw new NullReferenceException($"Таблица не объявлена с атрибутом {nameof(TableAttribute)}");
             }
 
-            mr_TableQueryProvider = queryProvider;
-
             mr_PropertyQueryCreator = new TablePropertyQueryManager(tableType, mr_TableAttribute);
 
-            mr_NestedTableQueries = new Dictionary<string, TableProviderExtensions>();
+            mr_ForeignTableQueryCreator = new Dictionary<string, TableQueryCreator>();
 
             mr_MainQuery = CreateInitialTableQuery();
         }
@@ -47,7 +41,7 @@ namespace DatabaseManager.QueryInteractions
 
         public TablePropertyQueryManager PropertyQueryCreator => mr_PropertyQueryCreator;
 
-        public Dictionary<string, TableProviderExtensions> ForeignTables => mr_NestedTableQueries;
+        public Dictionary<string, TableQueryCreator> ForeignTablesQueryCreator => mr_ForeignTableQueryCreator;
 
         public string MainQuery => mr_MainQuery.ToString();
 
@@ -71,20 +65,7 @@ namespace DatabaseManager.QueryInteractions
 
                 if (columnAttribute.IsForeignColumn && !string.IsNullOrWhiteSpace(columnAttribute.ForeignKeyName) && columnAttribute.ForeignTable != null)
                 {
-                    TableQueryCreator foreignTableQueryCreator = null;
-
-                    if (ForeignTables.TryGetValue(columnAttribute.ForeignTable.Name, out TableProviderExtensions tableQueryProvider))
-                    {
-                        foreignTableQueryCreator = tableQueryProvider.Creator;
-                    }
-                    else
-                    {
-                        TableProviderExtensions foreignTableQueryProvider = new TableProviderExtensions(columnAttribute.ForeignTable, mr_TableQueryProvider.Connection);
-
-                        ForeignTables.Add(columnAttribute.ForeignTable.Name, foreignTableQueryProvider);
-
-                        foreignTableQueryCreator = foreignTableQueryProvider.Creator;
-                    }
+                    TableQueryCreator foreignTableQueryCreator = GetOrCreateForeignTableQueryCreator(columnAttribute);
 
                     if (!foreignTablesQueryList.ContainsKey(foreignTableQueryCreator.Attribute.Name))
                     {
@@ -109,6 +90,25 @@ namespace DatabaseManager.QueryInteractions
             translatedQuery.Append(foreignTablesQueryList.Values.SelectMany(currentQuery => currentQuery).ToArray());
 
             return translatedQuery;
+        }
+
+        /// <summary>
+        /// Создание запроса для внешней таблицы, используемой в главной таблице
+        /// </summary>
+        /// <param name="propertyAttribute"></param>
+        /// <returns></returns>
+        public TableQueryCreator GetOrCreateForeignTableQueryCreator(ColumnAttribute propertyAttribute)
+        {
+            if (mr_ForeignTableQueryCreator.ContainsKey(propertyAttribute.ForeignTable.Name))
+            {
+                return mr_ForeignTableQueryCreator[propertyAttribute.ForeignTable.Name];
+            }
+
+            TableQueryCreator foreignTableQueryCreator = new TableQueryCreator(propertyAttribute.ForeignTable);
+
+            mr_ForeignTableQueryCreator.Add(propertyAttribute.ForeignTable.Name, foreignTableQueryCreator);
+
+            return foreignTableQueryCreator;
         }
 
         public static string CreateForeignTableQuery(TableQueryCreator foreignTableQueryManager, ColumnAttribute propertyAttribute)
