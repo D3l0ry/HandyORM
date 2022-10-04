@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace DatabaseManager
+namespace Handy
 {
     [AttributeUsage(AttributeTargets.Property)]
     public class ColumnAttribute : Attribute

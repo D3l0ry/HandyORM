@@ -2,7 +2,7 @@
 using System.Linq.Expressions;
 using System.Text;
 
-namespace DatabaseManager.QueryInteractions
+namespace Handy.QueryInteractions
 {
     internal static class CasesExpressionMethods
     {
@@ -31,15 +31,6 @@ namespace DatabaseManager.QueryInteractions
             visitor.Visit(methodCall.Arguments[0]);
 
             return visitor.CallWhereLiteMethod(methodCall, queryString);
-        }
-
-        public static MethodCallExpression CallTakeMethod(this ExpressionTranslator visitor, MethodCallExpression methodCall, StringBuilder queryString)
-        {
-            visitor.Visit(methodCall.Arguments[0]);
-
-            queryString.Insert(7, $" TOP {methodCall.Arguments[1]} ");
-
-            return methodCall;
         }
 
         public static MethodCallExpression CallFirstMethod(this ExpressionTranslator visitor, MethodCallExpression methodCall, StringBuilder queryString)

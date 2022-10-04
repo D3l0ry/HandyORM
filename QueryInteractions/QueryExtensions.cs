@@ -1,11 +1,22 @@
 ﻿using System;
+using System.Data;
 
 using Microsoft.Data.SqlClient;
 
-namespace DatabaseManager.QueryInteractions
+namespace Handy.QueryInteractions
 {
     internal static class QueryExtensions
     {
+        public static SqlCommand CreateProcedureCommand(this SqlConnection sqlConnection, string procedureName)
+        {
+            SqlCommand dataCommand = sqlConnection.CreateCommand();
+
+            dataCommand.CommandType = CommandType.StoredProcedure;
+            dataCommand.CommandText = procedureName;
+
+            return dataCommand;
+        }
+
         public static void ExecuteNonQuery(this SqlConnection sqlConnection, string query)
         {
             if (sqlConnection == null)

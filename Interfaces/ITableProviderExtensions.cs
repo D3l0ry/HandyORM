@@ -1,11 +1,15 @@
-﻿using DatabaseManager.QueryInteractions;
+﻿using System;
+
+using Handy.QueryInteractions;
 
 using Microsoft.Data.SqlClient;
 
-namespace DatabaseManager.Interfaces
+namespace Handy.Interfaces
 {
     internal interface ITableProviderExtensions
     {
+        Type TableType { get; }
+
         SqlConnection Connection { get; }
 
         TableQueryCreator Creator { get; }

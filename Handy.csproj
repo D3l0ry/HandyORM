@@ -5,20 +5,22 @@
     <Authors>Daniil Shantarin</Authors>
     <Company />
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
-    <Version>1.0.12.1</Version>
-    <AssemblyVersion>1.0.11.1</AssemblyVersion>
-    <FileVersion>1.0.11.1</FileVersion>
+    <Version>1.0.13.0</Version>
+    <AssemblyVersion>1.0.13.0</AssemblyVersion>
+    <FileVersion>1.0.13.0</FileVersion>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
     <DefineConstants>DEBUG;TRACE</DefineConstants>
     <Optimize>false</Optimize>
+    <DebugType>portable</DebugType>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
     <Optimize>true</Optimize>
     <GenerateSerializationAssemblies>Auto</GenerateSerializationAssemblies>
-    <DocumentationFile>D:\Develop\DatabaseManager\DatabaseManager.xml</DocumentationFile>
+    <DocumentationFile>Handy.xml</DocumentationFile>
+    <DebugType>none</DebugType>
   </PropertyGroup>
 
   <ItemGroup>

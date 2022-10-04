@@ -1,47 +1,18 @@
 ﻿using System;
-using System.Data;
 using System.Diagnostics;
 using System.Reflection;
 
-using DatabaseManager.Interfaces;
-using DatabaseManager.TableInteractions;
+using Handy.Interfaces;
+using Handy.QueryInteractions;
+using Handy.TableInteractions;
 
 using Microsoft.Data.SqlClient;
 
-namespace DatabaseManager.DatabaseInteractions
+namespace Handy.DatabaseInteractions
 {
-    internal class ProcedureExecutor
+    internal static class ProcedureExecutor
     {
-        private readonly SqlConnection mr_SqlConnection;
-        private readonly string mr_ProcedureName;
-
-        public ProcedureExecutor(SqlConnection sqlConnection, string procedureName)
-        {
-            if (sqlConnection == null)
-            {
-                throw new ArgumentNullException(nameof(sqlConnection));
-            }
-
-            if (string.IsNullOrWhiteSpace(procedureName))
-            {
-                throw new ArgumentNullException(nameof(procedureName));
-            }
-
-            mr_SqlConnection = sqlConnection;
-            mr_ProcedureName = procedureName;
-        }
-
-        private SqlCommand CreateCommand()
-        {
-            SqlCommand dataCommand = mr_SqlConnection.CreateCommand();
-
-            dataCommand.CommandType = CommandType.StoredProcedure;
-            dataCommand.CommandText = mr_ProcedureName;
-
-            return dataCommand;
-        }
-
-        private void AddArguments(object[] arguments, SqlCommand dataCommand, StackFrame stackFrame, MethodBase callingMethod)
+        private static void AddArguments(object[] arguments, SqlCommand dataCommand, StackFrame stackFrame, MethodBase callingMethod)
         {
             if (arguments.Length == 0)
             {
@@ -89,9 +60,9 @@ namespace DatabaseManager.DatabaseInteractions
             return elementType.GetCustomAttribute<TableAttribute>() != null;
         }
 
-        private ITableProviderExtensions GetTableProviderExtensions(Type type) => new TableProviderExtensions(type, mr_SqlConnection);
+        private static ITableProviderExtensions GetTableProviderExtensions(Type type, SqlConnection sqlConnection) => new TableProviderExtensions(type, sqlConnection);
 
-        private TResult ConvertReader<TResult>(SqlDataReader dataReader)
+        private static TResult ConvertReader<TResult>(SqlConnection sqlConnection, SqlDataReader dataReader)
         {
             if (dataReader == null)
             {
@@ -107,13 +78,13 @@ namespace DatabaseManager.DatabaseInteractions
 
                 if (resultType.IsArray)
                 {
-                    tableQueryProvider = GetTableProviderExtensions(resultType.GetElementType());
+                    tableQueryProvider = GetTableProviderExtensions(resultType.GetElementType(), sqlConnection);
 
                     result = (TResult)tableQueryProvider.Converter.GetObjects(dataReader);
                 }
                 else
                 {
-                    tableQueryProvider = GetTableProviderExtensions(resultType);
+                    tableQueryProvider = GetTableProviderExtensions(resultType, sqlConnection);
 
                     result = (TResult)tableQueryProvider.Converter.GetObject(dataReader);
                 }
@@ -146,12 +117,24 @@ namespace DatabaseManager.DatabaseInteractions
         /// Если процедура имеет принимаемые аргументы, то ExecuteProcedure должен обязательно вызываться в методе
         /// </summary>
         /// <typeparam name="T"></typeparam>
-        /// <param name="procedure">Имя хранимой процедуры</param>
+        /// <param name="sqlConnection"></param>
+        /// <param name="procedureName"></param>
         /// <param name="arguments">Аргументы, которые передаются в процедуру. Аргументы должны идти в порядке параметров метода</param>
         /// <returns></returns>
-        public T Execute<T>(params object[] arguments)
+        /// <exception cref="ArgumentNullException"></exception>
+        public static T ExecuteProcedure<T>(this SqlConnection sqlConnection, string procedureName, params object[] arguments)
         {
-            SqlCommand dataCommand = CreateCommand();
+            if (sqlConnection == null)
+            {
+                throw new ArgumentNullException(nameof(sqlConnection));
+            }
+
+            if (string.IsNullOrWhiteSpace(procedureName))
+            {
+                throw new ArgumentNullException(nameof(procedureName));
+            }
+
+            SqlCommand dataCommand = sqlConnection.CreateProcedureCommand(procedureName);
 
             StackFrame stackFrame = new StackFrame(2);
             MethodBase callingMethod = stackFrame.GetMethod();
@@ -160,7 +143,7 @@ namespace DatabaseManager.DatabaseInteractions
 
             SqlDataReader dataReader = dataCommand.ExecuteReader();
 
-            T result = ConvertReader<T>(dataReader);
+            T result = ConvertReader<T>(sqlConnection, dataReader);
 
             dataCommand.Dispose();
             dataReader.Close();

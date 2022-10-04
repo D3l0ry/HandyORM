@@ -3,23 +3,45 @@ using System.Collections.Generic;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 
-using DatabaseManager.Interfaces;
-using DatabaseManager.QueryInteractions;
-using DatabaseManager.TableInteractions;
+using Handy.Interfaces;
+using Handy.TableInteractions;
 
 using Microsoft.Data.SqlClient;
 
-namespace DatabaseManager
+namespace Handy
 {
+    /// <summary>
+    /// Класс для конвертации объектов из SqlDataReader в тип определяющий таблицу базы данных
+    /// </summary>
     public class TableConvertManager : ConvertManager
     {
         private readonly ITableProviderExtensions mr_TableProviderExtensions;
-        private readonly Dictionary<string, ITableProviderExtensions> mr_ForeignTableProviderExtensions;
+        private readonly Dictionary<Type, ITableProviderExtensions> mr_ForeignTableProviderExtensions;
 
         internal TableConvertManager(Type tableType, ITableProviderExtensions tableProvider) : base(tableType)
         {
             mr_TableProviderExtensions = tableProvider;
-            mr_ForeignTableProviderExtensions = new Dictionary<string, ITableProviderExtensions>();
+            mr_ForeignTableProviderExtensions = new Dictionary<Type, ITableProviderExtensions>();
+        }
+
+        private ITableProviderExtensions GetOrCreateForeignTableProviderExtensions(ColumnAttribute propertyAttribute)
+        {
+            Type foreignTableType = propertyAttribute.ForeignTable;
+
+            bool getValue = mr_ForeignTableProviderExtensions
+                .TryGetValue(foreignTableType, out ITableProviderExtensions selectedTableProviderExtensions);
+
+            if (getValue)
+            {
+                return selectedTableProviderExtensions;
+            }
+
+            TableProviderExtensions newForeignTableProviderExtensions =
+                new TableProviderExtensions(foreignTableType, mr_TableProviderExtensions.Connection);
+
+            mr_ForeignTableProviderExtensions.Add(foreignTableType, newForeignTableProviderExtensions);
+
+            return newForeignTableProviderExtensions;
         }
 
         /// <summary>
@@ -51,28 +73,10 @@ namespace DatabaseManager
 
             object foreignTable = foreignTableType
                 .GetConstructor(BindingFlags.NonPublic | BindingFlags.Instance, null, new Type[]
-                    { typeof(object), typeof(PropertyInfo), typeof(ITableProviderExtensions), typeof(ColumnAttribute) }, null)
-                .Invoke(new object[] { mainTable, mainTableForeignKeyProperty, foreignTableProviderExtensions, currentColumnAttribute });
+                    { typeof(object), typeof(PropertyInfo), typeof(ITableProviderExtensions) }, null)
+                .Invoke(new object[] { mainTable, mainTableForeignKeyProperty, foreignTableProviderExtensions });
 
             currentProperty.SetValue(mainTable, foreignTable);
-        }
-
-        private ITableProviderExtensions GetOrCreateForeignTableProviderExtensions(ColumnAttribute propertyAttribute)
-        {
-            if (mr_ForeignTableProviderExtensions.ContainsKey(propertyAttribute.ForeignTable.Name))
-            {
-                return mr_ForeignTableProviderExtensions[propertyAttribute.ForeignTable.Name];
-            }
-
-            TableQueryCreator foreignTableQueryCreator = mr_TableProviderExtensions.Creator
-                .GetOrCreateForeignTableQueryCreator(propertyAttribute);
-
-            TableProviderExtensions newForeignTableProviderExtensions =
-                new TableProviderExtensions(propertyAttribute.ForeignTable, mr_TableProviderExtensions.Connection, foreignTableQueryCreator);
-
-            mr_ForeignTableProviderExtensions.Add(propertyAttribute.ForeignTable.Name, newForeignTableProviderExtensions);
-
-            return newForeignTableProviderExtensions;
         }
 
         /// <summary>
@@ -85,9 +89,11 @@ namespace DatabaseManager
         {
             object table = Activator.CreateInstance(ObjectType);
 
-            ushort columnOrdinal = 0;
+            KeyValuePair<PropertyInfo, ColumnAttribute>[] tableProperties = mr_TableProviderExtensions.Creator.PropertyQueryCreator.Properties;
 
-            foreach (KeyValuePair<PropertyInfo, ColumnAttribute> currentKeyValuePair in mr_TableProviderExtensions.Creator.PropertyQueryCreator.Properties)
+            int columnOrdinal = 0;
+
+            foreach (KeyValuePair<PropertyInfo, ColumnAttribute> currentKeyValuePair in tableProperties)
             {
                 PropertyInfo currentProperty = currentKeyValuePair.Key;
                 ColumnAttribute currentColumnAttribute = currentKeyValuePair.Value;

@@ -5,18 +5,20 @@ using System.Linq;
 using System.Linq.Expressions;
 using System.Text;
 
-using DatabaseManager.QueryInteractions;
+using Handy.QueryInteractions;
 
 using Microsoft.Data.SqlClient;
 
-namespace DatabaseManager
+namespace Handy
 {
-    public class TableManager<Table> : IDatabaseQueryable<Table> where Table : class, new()
+    public class TableManager<Table> : ITableQueryable<Table> where Table : class, new()
     {
         private readonly TableQueryProvider<Table> mr_TableQueryProvider;
         private readonly Expression mr_Expression;
 
         internal TableManager(SqlConnection sqlConnection) : this(null, null, sqlConnection) { }
+
+        internal TableManager(TableQueryProvider<Table> tableQueryProvider, SqlConnection sqlConnection) : this(tableQueryProvider, null, sqlConnection) { }
 
         internal TableManager(TableQueryProvider<Table> tableQueryProvider, Expression expression, SqlConnection sqlConnection)
         {
@@ -24,9 +26,9 @@ namespace DatabaseManager
             mr_Expression = expression ?? Expression.Constant(this);
         }
 
-        Expression IDatabaseQueryable.Expression => mr_Expression;
+        Expression ITableQueryable.Expression => mr_Expression;
 
-        public IDatabaseQueryProvider Provider => mr_TableQueryProvider;
+        public ITableQueryProvider<Table> Provider => mr_TableQueryProvider;
 
         public void Add(Table newElement)
         {
@@ -167,8 +169,8 @@ namespace DatabaseManager
             mr_TableQueryProvider.Extensions.Connection.ExecuteNonQuery(createElementQuery);
         }
 
-        public IEnumerator<Table> GetEnumerator() => ((IEnumerable<Table>)mr_TableQueryProvider.Execute<Table[]>(mr_Expression)).GetEnumerator();
+        public IEnumerator<Table> GetEnumerator() => mr_TableQueryProvider.Execute(mr_Expression).GetEnumerator();
 
-        IEnumerator IEnumerable.GetEnumerator() => throw new NotImplementedException();
+        IEnumerator IEnumerable.GetEnumerator() => mr_TableQueryProvider.Execute(mr_Expression).GetEnumerator();
     }
 }

@@ -5,7 +5,9 @@ using System.Linq.Expressions;
 using System.Reflection;
 using System.Text;
 
-namespace DatabaseManager.QueryInteractions
+using Handy.InternalInteractions;
+
+namespace Handy.QueryInteractions
 {
     internal class ExpressionTranslator : ExpressionVisitor
     {
@@ -162,7 +164,7 @@ namespace DatabaseManager.QueryInteractions
 
         protected override Expression VisitConstant(ConstantExpression constant)
         {
-            if (constant.Value is IDatabaseQueryable)
+            if (constant.Value is ITableQueryable)
             {
                 return constant;
             }
@@ -182,8 +184,7 @@ namespace DatabaseManager.QueryInteractions
 
             if (selectedProperty.Value.IsForeignColumn && selectedProperty.Value.ForeignTable != null)
             {
-                tableProperty = mr_TableQueryCreator
-                   .ForeignTablesQueryCreator[selectedProperty.Value.ForeignTable.Name]
+                tableProperty = InternalStaticArrays.GetOrCreateTableQueryCreator(selectedProperty.Value.ForeignTable)
                    .PropertyQueryCreator
                    .GetPropertyName(selectedProperty);
             }

@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace DatabaseManager
+namespace Handy
 {
     [AttributeUsage(AttributeTargets.Class)]
     public class TableAttribute : Attribute

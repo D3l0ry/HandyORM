@@ -4,7 +4,7 @@ using System.Linq;
 using System.Reflection;
 using System.Text;
 
-namespace DatabaseManager.QueryInteractions
+namespace Handy.QueryInteractions
 {
     internal class TablePropertyQueryManager
     {
@@ -14,7 +14,7 @@ namespace DatabaseManager.QueryInteractions
 
         private readonly KeyValuePair<PropertyInfo, ColumnAttribute> mr_PrimaryKeyProperty;
 
-        private readonly Dictionary<PropertyInfo, ColumnAttribute> mr_Properties;
+        private readonly KeyValuePair<PropertyInfo, ColumnAttribute>[] mr_Properties;
 
         public TablePropertyQueryManager(Type tableType, TableAttribute tableAttribute)
         {
@@ -32,9 +32,7 @@ namespace DatabaseManager.QueryInteractions
 
             mr_TableAttribute = tableAttribute;
 
-            mr_Properties = new Dictionary<PropertyInfo, ColumnAttribute>();
-
-            GetProperties();
+            mr_Properties = GetProperties().ToArray();
 
             KeyValuePair<PropertyInfo, ColumnAttribute> primaryKeyProperty = mr_Properties
                 .FirstOrDefault(currentPropertyValuePair => currentPropertyValuePair.Value.IsPrimaryKey);
@@ -49,9 +47,9 @@ namespace DatabaseManager.QueryInteractions
 
         public KeyValuePair<PropertyInfo, ColumnAttribute> PrimaryKey => mr_PrimaryKeyProperty;
 
-        public KeyValuePair<PropertyInfo, ColumnAttribute>[] Properties => mr_Properties.ToArray();
+        public KeyValuePair<PropertyInfo, ColumnAttribute>[] Properties => mr_Properties;
 
-        private void GetProperties()
+        private IEnumerable<KeyValuePair<PropertyInfo, ColumnAttribute>> GetProperties()
         {
             IEnumerable<PropertyInfo> properties = mr_TableType.GetProperties(BindingFlags.Public | BindingFlags.Instance)
                 .Where(currentProperty => currentProperty.CustomAttributes
@@ -61,7 +59,10 @@ namespace DatabaseManager.QueryInteractions
             {
                 ColumnAttribute currentAttribute = currentProperty.GetCustomAttribute<ColumnAttribute>();
 
-                mr_Properties.Add(currentProperty, currentAttribute);
+                KeyValuePair<PropertyInfo, ColumnAttribute> newPropertyKeyValuePair =
+                    new KeyValuePair<PropertyInfo, ColumnAttribute>(currentProperty, currentAttribute);
+
+                yield return newPropertyKeyValuePair;
             }
         }
 

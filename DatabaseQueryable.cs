@@ -1,8 +1,6 @@
 ﻿using System.Linq.Expressions;
 using System.Reflection;
 
-using Microsoft.Data.SqlClient;
-
 namespace System.Linq
 {
     public static class DatabaseQueryable
@@ -13,35 +11,7 @@ namespace System.Linq
         private static MethodInfo GetMethodInfo<T1, T2, T3>(Func<T1, T2, T3> func, T1 unused, T2 unused2) => func.Method;
         #endregion
 
-        internal static void CheckDataValue(this SqlDataReader dataReader, Expression expression)
-        {
-            if (dataReader is null)
-            {
-                throw new ArgumentNullException(nameof(dataReader));
-            }
-
-            if (expression is null)
-            {
-                throw new ArgumentNullException(nameof(expression));
-            }
-
-            MethodCallExpression methodCallExpression = expression as MethodCallExpression;
-
-            if (methodCallExpression is null)
-            {
-                return;
-            }
-
-            string methodName = methodCallExpression.Method.Name;
-
-            switch (methodName)
-            {
-                case "First" when !dataReader.HasRows:
-                throw new InvalidOperationException("Исходная последовательность пуста");
-            }
-        }
-
-        public static IDatabaseQueryable<TSource> Where<TSource>(this IDatabaseQueryable<TSource> source, Expression<Func<TSource, bool>> predicate) where TSource : class
+        public static ITableQueryable<TSource> Where<TSource>(this ITableQueryable<TSource> source, Expression<Func<TSource, bool>> predicate) where TSource : class
         {
             if (source is null)
             {
@@ -53,7 +23,7 @@ namespace System.Linq
                 throw new ArgumentNullException(nameof(predicate));
             }
 
-            return ((IDatabaseQueryProvider<TSource>)source.Provider)
+            return source.Provider
                 .CreateQuery(
                     Expression.Call(
                         null,
@@ -62,23 +32,23 @@ namespace System.Linq
                     );
         }
 
-        public static TSource First<TSource>(this IDatabaseQueryable<TSource> source) where TSource : class
+        public static TSource First<TSource>(this ITableQueryable<TSource> source) where TSource : class
         {
             if (source is null)
             {
                 throw new ArgumentNullException(nameof(source));
             }
 
-            return source.Provider.Execute<TSource>(
+            return source.Provider.Execute(
                 Expression.Call(
                     null,
                     GetMethodInfo(First, source),
                     new Expression[] { source.Expression }
                     )
-                );
+                ).First();
         }
 
-        public static TSource First<TSource>(this IDatabaseQueryable<TSource> source, Expression<Func<TSource, bool>> predicate) where TSource : class
+        public static TSource First<TSource>(this ITableQueryable<TSource> source, Expression<Func<TSource, bool>> predicate) where TSource : class
         {
             if (source is null)
             {
@@ -90,32 +60,32 @@ namespace System.Linq
                 throw new ArgumentNullException(nameof(predicate));
             }
 
-            return source.Provider.Execute<TSource>(
+            return source.Provider.Execute(
                 Expression.Call(
                     null,
                     GetMethodInfo(First, source, predicate),
                     new Expression[] { source.Expression, Expression.Quote(predicate) }
                     )
-                );
+                ).First();
         }
 
-        public static TSource FirstOrDefault<TSource>(this IDatabaseQueryable<TSource> source) where TSource : class
+        public static TSource FirstOrDefault<TSource>(this ITableQueryable<TSource> source) where TSource : class
         {
             if (source is null)
             {
                 throw new ArgumentNullException(nameof(source));
             }
 
-            return source.Provider.Execute<TSource>(
+            return source.Provider.Execute(
                 Expression.Call(
                     null,
                     GetMethodInfo(FirstOrDefault, source),
                     new Expression[] { source.Expression }
                     )
-                );
+                ).FirstOrDefault();
         }
 
-        public static TSource FirstOrDefault<TSource>(this IDatabaseQueryable<TSource> source, Expression<Func<TSource, bool>> predicate) where TSource : class
+        public static TSource FirstOrDefault<TSource>(this ITableQueryable<TSource> source, Expression<Func<TSource, bool>> predicate) where TSource : class
         {
             if (source is null)
             {
@@ -127,13 +97,27 @@ namespace System.Linq
                 throw new ArgumentNullException(nameof(predicate));
             }
 
-            return source.Provider.Execute<TSource>(
+            return source.Provider.Execute(
                 Expression.Call(
                     null,
                     GetMethodInfo(FirstOrDefault, source, predicate),
                     new Expression[] { source.Expression, Expression.Quote(predicate) }
                     )
-                );
+                ).FirstOrDefault();
+        }
+
+        public static string GetQuery<TSource>(this ITableQueryable<TSource> source) where TSource : class
+        {
+            if (source is null)
+            {
+                throw new ArgumentNullException(nameof(source));
+            }
+
+            ITableQueryHelper tableQueryProvider = (ITableQueryHelper)source.Provider;
+
+            string query = tableQueryProvider.Extensions.Translator.Translate(source.Expression);
+
+            return query;
         }
     }
 }

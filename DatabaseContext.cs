@@ -2,18 +2,19 @@
 using System.Collections.Generic;
 using System.Linq;
 
-using DatabaseManager.DatabaseInteractions;
+using Handy.DatabaseInteractions;
 
 using Microsoft.Data.SqlClient;
 
-namespace DatabaseManager
+namespace Handy
 {
+    /// <summary>
+    /// Абстрактный класс для работы с базой данных и ее таблицами
+    /// </summary>
     public abstract class DatabaseContext : IDisposable
     {
-        private readonly Dictionary<Type, IDatabaseQueryable> mr_Tables;
-        private readonly Dictionary<string, ProcedureExecutor> mr_Procedures;
-
-        internal readonly SqlConnection mr_SqlConnection;
+        private readonly SqlConnection mr_SqlConnection;
+        private readonly Dictionary<Type, ITableQueryable> mr_Tables;
 
         protected DatabaseContext(string connection)
         {
@@ -22,9 +23,7 @@ namespace DatabaseManager
                 throw new ArgumentNullException(nameof(connection));
             }
 
-            mr_Tables = new Dictionary<Type, IDatabaseQueryable>();
-            mr_Procedures = new Dictionary<string, ProcedureExecutor>();
-
+            mr_Tables = new Dictionary<Type, ITableQueryable>();
             mr_SqlConnection = new SqlConnection(connection);
 
             mr_SqlConnection.Open();
@@ -40,31 +39,22 @@ namespace DatabaseManager
         /// <param name="procedure">Имя хранимой процедуры</param>
         /// <param name="arguments">Аргументы, которые передаются в процедуру. Аргументы должны идти в порядке параметров метода</param>
         /// <returns></returns>
-        protected virtual T ExecuteProcedure<T>(string procedure, params object[] arguments)
-        {
-            ProcedureExecutor selectedProcedure;
+        protected virtual T ExecuteProcedure<T>(string procedure, params object[] arguments) => mr_SqlConnection.ExecuteProcedure<T>(procedure, arguments);
 
-            if (mr_Procedures.ContainsKey(procedure))
-            {
-                selectedProcedure = mr_Procedures[procedure];
-            }
-            else
-            {
-                selectedProcedure = new ProcedureExecutor(mr_SqlConnection, procedure);
-
-                mr_Procedures.Add(procedure, selectedProcedure);
-            }
-
-            return selectedProcedure.Execute<T>(arguments);
-        }
-
+        /// <summary>
+        /// Получает объект TableManager с указанным типо, который определяет модель таблицы из базы данных
+        /// </summary>
+        /// <typeparam name="Table">Тип, определяющий модель таблицы из базы данных</typeparam>
+        /// <returns></returns>
         protected TableManager<Table> GetTable<Table>() where Table : class, new()
         {
             Type tableType = typeof(Table);
 
-            if (mr_Tables.TryGetValue(tableType, out IDatabaseQueryable selectedTable))
+            bool tryGet = mr_Tables.TryGetValue(tableType, out ITableQueryable selectedTable);
+
+            if (tryGet)
             {
-                return selectedTable as TableManager<Table>;
+                return (TableManager<Table>)selectedTable;
             }
 
             TableManager<Table> newTable = new TableManager<Table>(mr_SqlConnection);
@@ -77,7 +67,6 @@ namespace DatabaseManager
         public void Dispose()
         {
             mr_Tables.Clear();
-            mr_Procedures.Clear();
             mr_SqlConnection.Close();
         }
     }

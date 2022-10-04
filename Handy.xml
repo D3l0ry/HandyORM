@@ -4,9 +4,9 @@
         <name>Handy</name>
     </assembly>
     <members>
-        <member name="P:Handy.ColumnAttribute.ForeignTableKey">
+        <member name="P:Handy.ColumnAttribute.Name">
             <summary>
-            Указывает ключ внешней таблицы, по которому выполнять поиск (Заменяет первичный ключ на указанный)
+            Имя поля в таблице базы данных
             </summary>
         </member>
         <member name="P:Handy.ColumnAttribute.ForeignKeyName">
@@ -44,10 +44,56 @@
             Указывает, что колонка является таблицей
             </summary>
         </member>
-        <member name="P:Handy.ColumnAttribute.IsArray">
+        <member name="P:Handy.ColumnAttribute.IsValid">
             <summary>
-            Указывает, что колонка является массивом
+            Првоеряет, не является ли поле внешним или таблице, или с автогенерацией
             </summary>
+        </member>
+        <member name="P:Handy.ParameterAttribute.Name">
+            <summary>
+            Имя аргумента в хранимой процедуре
+            </summary>
+        </member>
+        <member name="P:Handy.TableAttribute.Name">
+            <summary>
+            Имя таблицы в базе данных
+            </summary>
+        </member>
+        <member name="P:Handy.TableAttribute.Schema">
+            <summary>
+            Имя схемы таблицы в базе данных
+            </summary>
+        </member>
+        <member name="T:Handy.ConvertManager">
+            <summary>
+            Класс для конвертации объектов из SqlDataReader
+            </summary>
+        </member>
+        <member name="M:Handy.ConvertManager.#ctor(System.Type)">
+            <summary>
+            Инициализатор
+            </summary>
+            <param name="type">Тип объекта, к которому нужно привести объекты из SqlDataReader</param>
+            <exception cref="T:System.ArgumentNullException"></exception>
+        </member>
+        <member name="P:Handy.ConvertManager.ObjectType">
+            <summary>
+            Тип объекта
+            </summary>
+        </member>
+        <member name="M:Handy.ConvertManager.GetInternalObject(Microsoft.Data.SqlClient.SqlDataReader)">
+            <summary>
+            Конвертирует поля из строки SqlDataReader в объекты выбранного типа
+            </summary>
+            <param name="dataReader"></param>
+            <returns></returns>
+        </member>
+        <member name="M:Handy.ConvertManager.GetObjectsEnumerable(Microsoft.Data.SqlClient.SqlDataReader)">
+            <summary>
+            Получение массива объектов из таблицы
+            </summary>
+            <param name="dataReader"></param>
+            <returns></returns>
         </member>
         <member name="M:Handy.ConvertManager.GetObjects(Microsoft.Data.SqlClient.SqlDataReader)">
             <summary>
@@ -63,6 +109,11 @@
             <param name="dataReader"></param>
             <returns></returns>
         </member>
+        <member name="T:Handy.TableConvertManager">
+            <summary>
+            Класс для конвертации объектов из SqlDataReader в тип определяющий таблицу базы данных
+            </summary>
+        </member>
         <member name="M:Handy.TableConvertManager.CreateForeignTable(System.Object,System.Reflection.PropertyInfo,Handy.ColumnAttribute)">
             <summary>
             Получение объектов из внешней таблицы
@@ -71,20 +122,17 @@
             <param name="currentProperty"></param>
             <param name="currentColumnAttribute"></param>
         </member>
-        <member name="M:Handy.TableConvertManager.GetOrCreateForeignTableConvertManager(System.Reflection.PropertyInfo,Handy.ColumnAttribute)">
-            <summary>
-            Создание запроса для внешней таблицы, используемой в главной таблице
-            </summary>
-            <param name="currentProperty"></param>
-            <param name="propertyAttribute"></param>
-            <returns></returns>
-        </member>
-        <member name="M:Handy.TableConvertManager.GetObject(Microsoft.Data.SqlClient.SqlDataReader)">
+        <member name="M:Handy.TableConvertManager.GetInternalObject(Microsoft.Data.SqlClient.SqlDataReader)">
             <summary>
             Получение объекта из таблицы
             </summary>
             <param name="dataReader"></param>
             <returns></returns>
+        </member>
+        <member name="T:Handy.DatabaseContext">
+            <summary>
+            Абстрактный класс для работы с базой данных и ее таблицами
+            </summary>
         </member>
         <member name="M:Handy.DatabaseContext.ExecuteProcedure``1(System.String,System.Object[])">
             <summary>
@@ -96,15 +144,24 @@
             <param name="arguments">Аргументы, которые передаются в процедуру. Аргументы должны идти в порядке параметров метода</param>
             <returns></returns>
         </member>
-        <member name="M:Handy.DatabaseInteractions.ProcedureExecutor.Execute``1(System.Object[])">
+        <member name="M:Handy.DatabaseContext.GetTable``1">
+            <summary>
+            Получает объект TableManager с указанным типо, который определяет модель таблицы из базы данных
+            </summary>
+            <typeparam name="Table">Тип, определяющий модель таблицы из базы данных</typeparam>
+            <returns></returns>
+        </member>
+        <member name="M:Handy.DatabaseInteractions.ProcedureExecutor.ExecuteProcedure``1(Microsoft.Data.SqlClient.SqlConnection,System.String,System.Object[])">
             <summary>
             Метод для вызова процедур базы данных.
             Если процедура имеет принимаемые аргументы, то ExecuteProcedure должен обязательно вызываться в методе
             </summary>
             <typeparam name="T"></typeparam>
-            <param name="procedure">Имя хранимой процедуры</param>
+            <param name="sqlConnection"></param>
+            <param name="procedureName"></param>
             <param name="arguments">Аргументы, которые передаются в процедуру. Аргументы должны идти в порядке параметров метода</param>
             <returns></returns>
+            <exception cref="T:System.ArgumentNullException"></exception>
         </member>
         <member name="M:Handy.QueryInteractions.TableQueryCreator.CreateInitialTableQuery">
             <summary>
