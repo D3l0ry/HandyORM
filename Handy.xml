@@ -14,6 +14,12 @@
             Указывает внешний ключ текущей таблицы для связи с первичным ключем другой таблицы
             </summary>
         </member>
+        <member name="P:Handy.ColumnAttribute.ForeignTableKeyName">
+            <summary>
+            Указывает ключ для поиска по внешней таблицы (Работает только вместе с ForeignKeyName)
+            </summary>
+            <remarks> Если ключ не указан, то поиск выполняется по первичному ключу</remarks>
+        </member>
         <member name="P:Handy.ColumnAttribute.ForeignTable">
             <summary>
             Указывает тип внешней таблицы
@@ -63,6 +69,25 @@
             <summary>
             Имя схемы таблицы в базе данных
             </summary>
+        </member>
+        <member name="T:Handy.Converters.ConverterTypeInformation">
+            <summary>
+            Информация о преобразуемом типе
+            </summary>
+        </member>
+        <member name="M:Handy.Converters.GenericConvertManager`1.GetInternalObject(Microsoft.Data.SqlClient.SqlDataReader)">
+            <summary>
+            Конвертирует поля из строки SqlDataReader в объекты выбранного типа
+            </summary>
+            <param name="dataReader"></param>
+            <returns></returns>
+        </member>
+        <member name="M:Handy.Converters.GenericConvertManager`1.GetObjectsEnumerable(Microsoft.Data.SqlClient.SqlDataReader)">
+            <summary>
+            Получение массива объектов из таблицы
+            </summary>
+            <param name="dataReader"></param>
+            <returns></returns>
         </member>
         <member name="T:Handy.ConvertManager">
             <summary>

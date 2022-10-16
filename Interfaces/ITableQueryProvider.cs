@@ -10,9 +10,7 @@ namespace System.Linq
         ITableProviderExtensions Extensions { get; }
     }
 
-    public interface ITableQueryProvider { }
-
-    public interface ITableQueryProvider<TElement> : ITableQueryProvider where TElement : class
+    public interface ITableQueryProvider<TElement> where TElement : class
     {
         ITableQueryable<TElement> CreateQuery(Expression expression);
 

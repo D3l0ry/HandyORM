@@ -1,12 +1,11 @@
 ﻿using System;
 
 using Handy.Interfaces;
-using Handy.InternalInteractions;
 using Handy.QueryInteractions;
 
 using Microsoft.Data.SqlClient;
 
-namespace Handy.TableInteractions
+namespace Handy.Extensions
 {
     internal class TableProviderExtensions : ITableProviderExtensions
     {
@@ -30,7 +29,7 @@ namespace Handy.TableInteractions
 
             mr_TableType = tableType;
             mr_SqlConnection = sqlConnection;
-            mr_TableQueryCreator = InternalStaticArrays.GetOrCreateTableQueryCreator(tableType);
+            mr_TableQueryCreator = TableQueryCreator.GetOrCreateTableQueryCreator(tableType);
             mr_TableQueryTranslator = new ExpressionTranslator(mr_TableQueryCreator);
             mr_TableConvertManager = new TableConvertManager(tableType, this);
         }
@@ -44,5 +43,7 @@ namespace Handy.TableInteractions
         public ExpressionTranslator Translator => mr_TableQueryTranslator;
 
         public TableConvertManager Converter => mr_TableConvertManager;
+
+        public static ITableProviderExtensions GetTableProviderExtensions(Type type, SqlConnection sqlConnection) => new TableProviderExtensions(type, sqlConnection);
     }
 }

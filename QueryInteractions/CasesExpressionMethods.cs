@@ -54,7 +54,7 @@ namespace Handy.QueryInteractions
 
         public static MethodCallExpression CallContainsMethod(this ExpressionTranslator visitor, MethodCallExpression methodCall, StringBuilder queryString)
         {
-            visitor.GetProperty(methodCall.Object as MemberExpression);
+            visitor.GetProperty((MemberExpression)methodCall.Object);
 
             object field = Expression.Lambda(methodCall.Arguments.First()).Compile().DynamicInvoke();
 

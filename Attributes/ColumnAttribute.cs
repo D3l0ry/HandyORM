@@ -26,6 +26,12 @@ namespace Handy
         public string ForeignKeyName { get; set; }
 
         /// <summary>
+        /// Указывает ключ для поиска по внешней таблицы (Работает только вместе с ForeignKeyName)
+        /// </summary>
+        /// <remarks> Если ключ не указан, то поиск выполняется по первичному ключу</remarks>
+        public string ForeignTableKeyName { get; set; }
+
+        /// <summary>
         /// Указывает тип внешней таблицы
         /// </summary>
         public Type ForeignTable { get; set; }

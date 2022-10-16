@@ -4,12 +4,12 @@ using System.Linq;
 using System.Reflection;
 using System.Text;
 
-using Handy.InternalInteractions;
-
 namespace Handy.QueryInteractions
 {
     internal class TableQueryCreator
     {
+        private static readonly Dictionary<Type, TableQueryCreator> ms_TableQueryCreators = new Dictionary<Type, TableQueryCreator>();
+
         private readonly TableAttribute mr_TableAttribute;
         private readonly TablePropertyQueryManager mr_PropertyQueryCreator;
         private string mr_MainQuery;
@@ -48,7 +48,7 @@ namespace Handy.QueryInteractions
             }
         }
 
-        private void CreateLeftJoinForForeignColumn(Dictionary<string, string> foreignTablesQueryList, KeyValuePair<PropertyInfo, ColumnAttribute> currentKeyValuePair, TableQueryCreator foreignTableQueryCreator)
+        private void CreateLeftJoinForForeignColumn(Dictionary<string, string> foreignTablesQueryList, KeyValuePair<PropertyInfo, ColumnAttribute> currentProperty, TableQueryCreator foreignTableQueryCreator)
         {
             if (foreignTablesQueryList.ContainsKey(foreignTableQueryCreator.Attribute.Name))
             {
@@ -60,15 +60,29 @@ namespace Handy.QueryInteractions
             string tableName = foreignTableQueryCreator.mr_PropertyQueryCreator
                 .GetTableName();
 
-            string PropertyPrimaryKeyName = foreignTableQueryCreator.mr_PropertyQueryCreator
-                .GetPropertyName(foreignTableQueryCreator.mr_PropertyQueryCreator.PrimaryKey);
+            string foreignTableKeyName;
+
+            if (string.IsNullOrWhiteSpace(currentProperty.Value.ForeignTableKeyName))
+            {
+                foreignTableKeyName = foreignTableQueryCreator.mr_PropertyQueryCreator
+                    .GetPropertyName(foreignTableQueryCreator.mr_PropertyQueryCreator.PrimaryKey);
+            }
+            else
+            {
+                KeyValuePair<PropertyInfo, ColumnAttribute> selectedForeignTableProperty =
+                    foreignTableQueryCreator.mr_PropertyQueryCreator
+                    .GetProperty(currentProperty.Value.ForeignTableKeyName);
+
+                foreignTableKeyName = foreignTableQueryCreator.mr_PropertyQueryCreator
+                    .GetPropertyName(selectedForeignTableProperty);
+            }
 
             string foreignKeyName = mr_PropertyQueryCreator
-                .GetForeignKeyName(currentKeyValuePair);
+                .GetForeignKeyName(currentProperty);
 
             newLeftJoinStringBuilder.Append(tableName);
             newLeftJoinStringBuilder.Append(" ON ");
-            newLeftJoinStringBuilder.Append(PropertyPrimaryKeyName);
+            newLeftJoinStringBuilder.Append(foreignTableKeyName);
             newLeftJoinStringBuilder.Append("=");
             newLeftJoinStringBuilder.Append(foreignKeyName);
             newLeftJoinStringBuilder.Append(" ");
@@ -98,7 +112,7 @@ namespace Handy.QueryInteractions
 
                 if (columnAttribute.IsForeignColumn && !string.IsNullOrWhiteSpace(columnAttribute.ForeignKeyName) && columnAttribute.ForeignTable != null)
                 {
-                    TableQueryCreator foreignTableQueryCreator = InternalStaticArrays.GetOrCreateTableQueryCreator(columnAttribute.ForeignTable);
+                    TableQueryCreator foreignTableQueryCreator = TableQueryCreator.GetOrCreateTableQueryCreator(columnAttribute.ForeignTable);
 
                     CreateLeftJoinForForeignColumn(foreignTablesQueryList, currentKeyValuePair, foreignTableQueryCreator);
 
@@ -124,6 +138,20 @@ namespace Handy.QueryInteractions
             translatedQuery.Append(foreignTablesLeftJoinQuery);
 
             return translatedQuery.ToString();
+        }
+
+        public static TableQueryCreator GetOrCreateTableQueryCreator(Type tableType)
+        {
+            if (ms_TableQueryCreators.TryGetValue(tableType, out TableQueryCreator foundTableQueryCreator))
+            {
+                return foundTableQueryCreator;
+            }
+
+            TableQueryCreator newTableQueryCreator = new TableQueryCreator(tableType);
+
+            ms_TableQueryCreators.Add(tableType, newTableQueryCreator);
+
+            return newTableQueryCreator;
         }
     }
 }

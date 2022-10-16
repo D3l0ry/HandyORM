@@ -2,9 +2,9 @@
 using System.Diagnostics;
 using System.Reflection;
 
+using Handy.Converters;
+using Handy.Extensions;
 using Handy.Interfaces;
-using Handy.QueryInteractions;
-using Handy.TableInteractions;
 
 using Microsoft.Data.SqlClient;
 
@@ -14,12 +14,12 @@ namespace Handy.DatabaseInteractions
     {
         private static void AddArguments(object[] arguments, SqlCommand dataCommand, StackFrame stackFrame, MethodBase callingMethod)
         {
-            if (arguments.Length == 0)
+            if (!stackFrame.HasMethod())
             {
                 return;
             }
 
-            if (!stackFrame.HasMethod())
+            if (arguments.Length == 0)
             {
                 return;
             }
@@ -31,7 +31,7 @@ namespace Handy.DatabaseInteractions
                 ParameterInfo currentParameter = methodParameters[index];
                 ParameterAttribute parameterAttribute = methodParameters[index].GetCustomAttribute<ParameterAttribute>();
 
-                string parameterName = parameterAttribute is null ? $"@{currentParameter.Name}" : $"@{parameterAttribute.Name}";
+                string parameterName = parameterAttribute == null ? $"@{currentParameter.Name}" : $"@{parameterAttribute.Name}";
 
                 SqlParameter newParameter = new SqlParameter()
                 {
@@ -43,25 +43,6 @@ namespace Handy.DatabaseInteractions
             }
         }
 
-        private static bool IsDatabaseTableType(Type type)
-        {
-            if (type == null)
-            {
-                throw new ArgumentNullException(nameof(type));
-            }
-
-            Type elementType = type;
-
-            if (type.IsArray)
-            {
-                elementType = type.GetElementType();
-            }
-
-            return elementType.GetCustomAttribute<TableAttribute>() != null;
-        }
-
-        private static ITableProviderExtensions GetTableProviderExtensions(Type type, SqlConnection sqlConnection) => new TableProviderExtensions(type, sqlConnection);
-
         private static TResult ConvertReader<TResult>(SqlConnection sqlConnection, SqlDataReader dataReader)
         {
             if (dataReader == null)
@@ -72,19 +53,21 @@ namespace Handy.DatabaseInteractions
             Type resultType = typeof(TResult);
             TResult result;
 
-            if (IsDatabaseTableType(resultType))
+            ConverterTypeInformation typeInformation = resultType.GetConvertTypeInformation();
+
+            if (typeInformation.IsTable)
             {
                 ITableProviderExtensions tableQueryProvider;
 
-                if (resultType.IsArray)
+                if (typeInformation.IsArray)
                 {
-                    tableQueryProvider = GetTableProviderExtensions(resultType.GetElementType(), sqlConnection);
+                    tableQueryProvider = TableProviderExtensions.GetTableProviderExtensions(typeInformation.Type, sqlConnection);
 
                     result = (TResult)tableQueryProvider.Converter.GetObjects(dataReader);
                 }
                 else
                 {
-                    tableQueryProvider = GetTableProviderExtensions(resultType, sqlConnection);
+                    tableQueryProvider = TableProviderExtensions.GetTableProviderExtensions(typeInformation.Type, sqlConnection);
 
                     result = (TResult)tableQueryProvider.Converter.GetObject(dataReader);
                 }
@@ -93,15 +76,15 @@ namespace Handy.DatabaseInteractions
             {
                 ConvertManager convertManager;
 
-                if (resultType.IsArray)
+                if (typeInformation.IsArray)
                 {
-                    convertManager = new ConvertManager(resultType.GetElementType());
+                    convertManager = new ConvertManager(typeInformation.Type);
 
                     result = (TResult)convertManager.GetObjects(dataReader);
                 }
                 else
                 {
-                    convertManager = new ConvertManager(resultType);
+                    convertManager = new ConvertManager(typeInformation.Type);
 
                     result = (TResult)convertManager.GetObject(dataReader);
                 }

@@ -5,7 +5,7 @@
     <Authors>Daniil Shantarin</Authors>
     <Company />
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
-    <Version>1.0.13.0</Version>
+    <Version>1.0.14.0</Version>
     <AssemblyVersion>1.0.13.0</AssemblyVersion>
     <FileVersion>1.0.13.0</FileVersion>
   </PropertyGroup>

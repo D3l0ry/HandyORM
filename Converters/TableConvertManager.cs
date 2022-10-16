@@ -3,8 +3,8 @@ using System.Collections.Generic;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 
+using Handy.Extensions;
 using Handy.Interfaces;
-using Handy.TableInteractions;
 
 using Microsoft.Data.SqlClient;
 

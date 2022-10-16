@@ -5,8 +5,6 @@ using System.Linq.Expressions;
 using System.Reflection;
 using System.Text;
 
-using Handy.InternalInteractions;
-
 namespace Handy.QueryInteractions
 {
     internal class ExpressionTranslator : ExpressionVisitor
@@ -184,7 +182,7 @@ namespace Handy.QueryInteractions
 
             if (selectedProperty.Value.IsForeignColumn && selectedProperty.Value.ForeignTable != null)
             {
-                tableProperty = InternalStaticArrays.GetOrCreateTableQueryCreator(selectedProperty.Value.ForeignTable)
+                tableProperty = TableQueryCreator.GetOrCreateTableQueryCreator(selectedProperty.Value.ForeignTable)
                    .PropertyQueryCreator
                    .GetPropertyName(selectedProperty);
             }

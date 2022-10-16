@@ -3,7 +3,7 @@ using System.Data;
 
 using Microsoft.Data.SqlClient;
 
-namespace Handy.QueryInteractions
+namespace Handy
 {
     internal static class QueryExtensions
     {
