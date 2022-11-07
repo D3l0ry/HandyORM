@@ -3,45 +3,29 @@ using System.Collections.Generic;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 
-using Handy.Extensions;
-using Handy.Interfaces;
+using Handy.QueryInteractions;
 
 using Microsoft.Data.SqlClient;
 
-namespace Handy
+namespace Handy.Converters
 {
     /// <summary>
     /// Класс для конвертации объектов из SqlDataReader в тип определяющий таблицу базы данных
     /// </summary>
     public class TableConvertManager : ConvertManager
     {
-        private readonly ITableProviderExtensions mr_TableProviderExtensions;
-        private readonly Dictionary<Type, ITableProviderExtensions> mr_ForeignTableProviderExtensions;
+        private readonly SqlConnection mr_Connection;
+        private readonly TableQueryCreator mr_QueryCreator;
 
-        internal TableConvertManager(Type tableType, ITableProviderExtensions tableProvider) : base(tableType)
+        internal TableConvertManager(Type tableType, SqlConnection connection) : base(tableType)
         {
-            mr_TableProviderExtensions = tableProvider;
-            mr_ForeignTableProviderExtensions = new Dictionary<Type, ITableProviderExtensions>();
-        }
-
-        private ITableProviderExtensions GetOrCreateForeignTableProviderExtensions(ColumnAttribute propertyAttribute)
-        {
-            Type foreignTableType = propertyAttribute.ForeignTable;
-
-            bool getValue = mr_ForeignTableProviderExtensions
-                .TryGetValue(foreignTableType, out ITableProviderExtensions selectedTableProviderExtensions);
-
-            if (getValue)
+            if (connection == null)
             {
-                return selectedTableProviderExtensions;
+                throw new ArgumentNullException(nameof(connection));
             }
 
-            TableProviderExtensions newForeignTableProviderExtensions =
-                new TableProviderExtensions(foreignTableType, mr_TableProviderExtensions.Connection);
-
-            mr_ForeignTableProviderExtensions.Add(foreignTableType, newForeignTableProviderExtensions);
-
-            return newForeignTableProviderExtensions;
+            mr_Connection = connection;
+            mr_QueryCreator = TableQueryCreator.GetOrCreateTableQueryCreator(tableType);
         }
 
         /// <summary>
@@ -53,28 +37,20 @@ namespace Handy
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void CreateForeignTable(object mainTable, PropertyInfo currentProperty, ColumnAttribute currentColumnAttribute)
         {
-            Type foreignTableType;
-            Type propertyGenericType;
+            Type foreignTableType = typeof(ForeignTable<>);
 
-            propertyGenericType = currentColumnAttribute.ForeignTable;
-
-            foreignTableType = typeof(ForeignTable<>).MakeGenericType(propertyGenericType);
-
-            if (currentProperty.PropertyType != foreignTableType)
+            if (currentProperty.PropertyType.GetGenericTypeDefinition() != foreignTableType)
             {
-                throw new InvalidCastException($"{foreignTableType} не соответствует типу {currentProperty.PropertyType}");
+                throw new ArgumentException("Свойство не является типом ForeignTable");
             }
 
-            PropertyInfo mainTableForeignKeyProperty = mr_TableProviderExtensions.Creator.PropertyQueryCreator
+            PropertyInfo mainTableForeignKeyProperty = mr_QueryCreator.PropertyQueryCreator
                 .GetProperty(currentColumnAttribute.ForeignKeyName).Key;
 
-            ITableProviderExtensions foreignTableProviderExtensions =
-                GetOrCreateForeignTableProviderExtensions(currentColumnAttribute);
-
-            object foreignTable = foreignTableType
+            object foreignTable = currentProperty.PropertyType
                 .GetConstructor(BindingFlags.NonPublic | BindingFlags.Instance, null, new Type[]
-                    { typeof(object), typeof(PropertyInfo), typeof(ITableProviderExtensions) }, null)
-                .Invoke(new object[] { mainTable, mainTableForeignKeyProperty, foreignTableProviderExtensions });
+                    { typeof(object), typeof(PropertyInfo), typeof(SqlConnection) }, null)
+                .Invoke(new object[] { mainTable, mainTableForeignKeyProperty, mr_Connection });
 
             currentProperty.SetValue(mainTable, foreignTable);
         }
@@ -89,7 +65,7 @@ namespace Handy
         {
             object table = Activator.CreateInstance(ObjectType);
 
-            KeyValuePair<PropertyInfo, ColumnAttribute>[] tableProperties = mr_TableProviderExtensions.Creator.PropertyQueryCreator.Properties;
+            KeyValuePair<PropertyInfo, ColumnAttribute>[] tableProperties = mr_QueryCreator.PropertyQueryCreator.Properties;
 
             int columnOrdinal = 0;
 
@@ -103,11 +79,6 @@ namespace Handy
                     if (string.IsNullOrWhiteSpace(currentColumnAttribute.ForeignKeyName))
                     {
                         throw new NullReferenceException($"Не указан внешний ключ для {currentProperty.Name}");
-                    }
-
-                    if (currentColumnAttribute.ForeignTable is null)
-                    {
-                        throw new NullReferenceException($"Не указан тип внешней таблицы для {currentProperty.Name}");
                     }
 
                     CreateForeignTable(table, currentProperty, currentColumnAttribute);
