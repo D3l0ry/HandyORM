@@ -4,11 +4,11 @@ using System.Reflection;
 
 using Microsoft.Data.SqlClient;
 
-namespace Handy.Converters
+namespace Handy.Converters.Generic
 {
-    internal sealed class GenericConvertManager<T> : ConvertManager where T : new()
+    internal sealed class ConvertManager<T> : ConvertManager where T : new()
     {
-        public GenericConvertManager() : base(typeof(T)) { }
+        public ConvertManager() : base(typeof(T)) { }
 
         /// <summary>
         /// Конвертирует поля из строки SqlDataReader в объекты выбранного типа
