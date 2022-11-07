@@ -52,7 +52,7 @@
         </member>
         <member name="P:Handy.ColumnAttribute.IsValid">
             <summary>
-            Првоеряет, не является ли поле внешним или таблице, или с автогенерацией
+            Првоеряет, не является ли поле внешним или таблицей, или с автогенерацией
             </summary>
         </member>
         <member name="P:Handy.ParameterAttribute.Name">
@@ -69,25 +69,6 @@
             <summary>
             Имя схемы таблицы в базе данных
             </summary>
-        </member>
-        <member name="T:Handy.Converters.ConverterTypeInformation">
-            <summary>
-            Информация о преобразуемом типе
-            </summary>
-        </member>
-        <member name="M:Handy.Converters.GenericConvertManager`1.GetInternalObject(Microsoft.Data.SqlClient.SqlDataReader)">
-            <summary>
-            Конвертирует поля из строки SqlDataReader в объекты выбранного типа
-            </summary>
-            <param name="dataReader"></param>
-            <returns></returns>
-        </member>
-        <member name="M:Handy.Converters.GenericConvertManager`1.GetObjectsEnumerable(Microsoft.Data.SqlClient.SqlDataReader)">
-            <summary>
-            Получение массива объектов из таблицы
-            </summary>
-            <param name="dataReader"></param>
-            <returns></returns>
         </member>
         <member name="T:Handy.ConvertManager">
             <summary>
@@ -134,12 +115,26 @@
             <param name="dataReader"></param>
             <returns></returns>
         </member>
-        <member name="T:Handy.TableConvertManager">
+        <member name="M:Handy.Converters.Generic.ConvertManager`1.GetInternalObject(Microsoft.Data.SqlClient.SqlDataReader)">
+            <summary>
+            Конвертирует поля из строки SqlDataReader в объекты выбранного типа
+            </summary>
+            <param name="dataReader"></param>
+            <returns></returns>
+        </member>
+        <member name="M:Handy.Converters.Generic.ConvertManager`1.GetObjectsEnumerable(Microsoft.Data.SqlClient.SqlDataReader)">
+            <summary>
+            Получение массива объектов из таблицы
+            </summary>
+            <param name="dataReader"></param>
+            <returns></returns>
+        </member>
+        <member name="T:Handy.Converters.TableConvertManager">
             <summary>
             Класс для конвертации объектов из SqlDataReader в тип определяющий таблицу базы данных
             </summary>
         </member>
-        <member name="M:Handy.TableConvertManager.CreateForeignTable(System.Object,System.Reflection.PropertyInfo,Handy.ColumnAttribute)">
+        <member name="M:Handy.Converters.TableConvertManager.CreateForeignTable(System.Object,System.Reflection.PropertyInfo,Handy.ColumnAttribute)">
             <summary>
             Получение объектов из внешней таблицы
             </summary>
@@ -147,7 +142,7 @@
             <param name="currentProperty"></param>
             <param name="currentColumnAttribute"></param>
         </member>
-        <member name="M:Handy.TableConvertManager.GetInternalObject(Microsoft.Data.SqlClient.SqlDataReader)">
+        <member name="M:Handy.Converters.TableConvertManager.GetInternalObject(Microsoft.Data.SqlClient.SqlDataReader)">
             <summary>
             Получение объекта из таблицы
             </summary>
@@ -176,9 +171,9 @@
             <typeparam name="Table">Тип, определяющий модель таблицы из базы данных</typeparam>
             <returns></returns>
         </member>
-        <member name="M:Handy.DatabaseInteractions.ProcedureExecutor.ExecuteProcedure``1(Microsoft.Data.SqlClient.SqlConnection,System.String,System.Object[])">
+        <member name="M:Handy.SqlConnectionExtensions.ExecuteProcedure``1(Microsoft.Data.SqlClient.SqlConnection,System.String,System.Object[])">
             <summary>
-            Метод для вызова процедур базы данных.
+            Метод для вызова процедуры из базы данных.
             Если процедура имеет принимаемые аргументы, то ExecuteProcedure должен обязательно вызываться в методе
             </summary>
             <typeparam name="T"></typeparam>

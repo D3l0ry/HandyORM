@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Reflection;
 using System.Text;
 
-using Handy.Interfaces;
 using Handy.QueryInteractions;
 
 using Microsoft.Data.SqlClient;
@@ -14,13 +13,14 @@ namespace Handy
     {
         private static readonly Dictionary<Type, string> ms_ForeignTableQuery = new Dictionary<Type, string>();
 
+        private readonly Type mr_TableType;
         private readonly object mr_MainTable;
         private readonly PropertyInfo mr_MainTableForeignKey;
-        private readonly ITableProviderExtensions mr_TableProviderExtensions;
+        private readonly SqlConnection mr_SqlConnection;
 
         private Table m_Value;
 
-        internal ForeignTable(object mainTable, PropertyInfo mainTableForeignKey, ITableProviderExtensions tableProvider)
+        internal ForeignTable(object mainTable, PropertyInfo mainTableForeignKey, SqlConnection connection)
         {
             if (mainTable is null)
             {
@@ -32,24 +32,25 @@ namespace Handy
                 throw new ArgumentNullException(nameof(mainTableForeignKey));
             }
 
-            if (tableProvider is null)
+            if (connection is null)
             {
-                throw new ArgumentNullException(nameof(tableProvider));
+                throw new ArgumentNullException(nameof(connection));
             }
 
+            mr_TableType = typeof(Table);
             mr_MainTable = mainTable;
             mr_MainTableForeignKey = mainTableForeignKey;
-            mr_TableProviderExtensions = tableProvider;
+            mr_SqlConnection = connection;
         }
 
-        private static string GetOrCreateForeignTableQuery(ITableProviderExtensions tableProviderExtensions)
+        private string GetOrCreateForeignTableQuery()
         {
-            if (ms_ForeignTableQuery.TryGetValue(tableProviderExtensions.TableType, out string foundForeingTableQuery))
+            if (ms_ForeignTableQuery.TryGetValue(mr_TableType, out string foundForeingTableQuery))
             {
                 return foundForeingTableQuery;
             }
 
-            TableQueryCreator selectedTableQueryCreator = tableProviderExtensions.Creator;
+            TableQueryCreator selectedTableQueryCreator = TableQueryCreator.GetOrCreateTableQueryCreator(mr_TableType);
             TablePropertyQueryManager selectedTablePropertyQueryManager = selectedTableQueryCreator.PropertyQueryCreator;
 
             StringBuilder queryString = new StringBuilder(selectedTableQueryCreator.MainQuery);
@@ -61,7 +62,7 @@ namespace Handy
 
             string newForeingTableQuery = queryString.ToString();
 
-            ms_ForeignTableQuery.Add(tableProviderExtensions.TableType, newForeingTableQuery);
+            ms_ForeignTableQuery.Add(mr_TableType, newForeingTableQuery);
 
             return newForeingTableQuery;
         }
@@ -70,7 +71,7 @@ namespace Handy
         {
             StringBuilder stringBuilder = new StringBuilder();
 
-            string selectedForeingTableQuery = GetOrCreateForeignTableQuery(mr_TableProviderExtensions);
+            string selectedForeingTableQuery = GetOrCreateForeignTableQuery();
 
             stringBuilder.Append(selectedForeingTableQuery);
             stringBuilder.Append(TablePropertyQueryManager.ConvertFieldQuery(mr_MainTableForeignKey.GetValue(mr_MainTable)));
@@ -90,9 +91,11 @@ namespace Handy
 
                 string newQuery = GetForeignTableQuery();
 
-                SqlDataReader dataReader = mr_TableProviderExtensions.Connection.ExecuteReader(newQuery);
+                SqlDataReader dataReader = mr_SqlConnection.ExecuteReader(newQuery);
 
-                m_Value = (Table)mr_TableProviderExtensions.Converter.GetObject(dataReader);
+                m_Value = mr_SqlConnection
+                    .GetTableConverter<Table>()
+                    .GetObject(dataReader);
 
                 return m_Value;
             }

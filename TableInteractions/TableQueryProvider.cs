@@ -1,11 +1,11 @@
 ﻿using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
+using System.Text;
 
-using Handy.Extensions;
 using Handy.Interfaces;
+using Handy.TableInteractions;
 
 using Microsoft.Data.SqlClient;
 
@@ -18,11 +18,11 @@ namespace Handy
 
         internal TableQueryProvider(SqlConnection sqlConnection)
         {
-            Type tableType = typeof(TElement);
-
             mr_SqlConnection = sqlConnection;
-            mr_ProviderExtensions = new TableProviderExtensions(tableType, sqlConnection);
+            mr_ProviderExtensions = new TableProviderExtensions(typeof(TElement), sqlConnection);
         }
+
+        public SqlConnection Connection => mr_SqlConnection;
 
         public ITableProviderExtensions Extensions => mr_ProviderExtensions;
 
@@ -30,16 +30,19 @@ namespace Handy
 
         public IEnumerable<TElement> Execute(Expression expression)
         {
+            StringBuilder mainQuery = new StringBuilder(mr_ProviderExtensions.Creator.MainQuery);
+
             string query = mr_ProviderExtensions.Translator.Translate(expression);
 
-            SqlDataReader dataReader = mr_SqlConnection.ExecuteReader(query);
+            mainQuery.Append(query);
 
-            IEnumerable result = mr_ProviderExtensions.Converter.GetObjectsEnumerable(dataReader);
+            SqlDataReader dataReader = mr_SqlConnection.ExecuteReader(mainQuery.ToString());
 
-            foreach (TElement currentElement in result)
-            {
-                yield return currentElement;
-            }
+            IEnumerable<TElement> result = mr_SqlConnection
+                .GetTableConverter<TElement>()
+                .GetObjectsEnumerable(dataReader);
+
+            return result;
         }
     }
 }

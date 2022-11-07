@@ -4,6 +4,8 @@ using System.Linq;
 using System.Reflection;
 using System.Text;
 
+using Handy.Extensions;
+
 namespace Handy.QueryInteractions
 {
     internal class TableQueryCreator
@@ -16,14 +18,14 @@ namespace Handy.QueryInteractions
 
         public TableQueryCreator(Type tableType)
         {
-            if (tableType is null)
+            if (tableType == null)
             {
                 throw new ArgumentNullException(nameof(tableType));
             }
 
             mr_TableAttribute = tableType.GetCustomAttribute<TableAttribute>();
 
-            if (mr_TableAttribute is null)
+            if (mr_TableAttribute == null)
             {
                 throw new NullReferenceException($"Таблица не объявлена с атрибутом {nameof(TableAttribute)}");
             }
@@ -100,9 +102,11 @@ namespace Handy.QueryInteractions
         {
             StringBuilder translatedQuery = new StringBuilder("SELECT ");
             Dictionary<string, string> foreignTablesQueryList = new Dictionary<string, string>();
+            int propertiesCount = mr_PropertyQueryCreator.Properties.Length;
 
-            foreach (KeyValuePair<PropertyInfo, ColumnAttribute> currentKeyValuePair in mr_PropertyQueryCreator.Properties)
+            for (int index = 0; index < propertiesCount; index++)
             {
+                KeyValuePair<PropertyInfo, ColumnAttribute> currentKeyValuePair = mr_PropertyQueryCreator.Properties[index];
                 ColumnAttribute columnAttribute = currentKeyValuePair.Value;
 
                 if (columnAttribute.IsTable)
@@ -112,7 +116,7 @@ namespace Handy.QueryInteractions
 
                 if (columnAttribute.IsForeignColumn && !string.IsNullOrWhiteSpace(columnAttribute.ForeignKeyName) && columnAttribute.ForeignTable != null)
                 {
-                    TableQueryCreator foreignTableQueryCreator = TableQueryCreator.GetOrCreateTableQueryCreator(columnAttribute.ForeignTable);
+                    TableQueryCreator foreignTableQueryCreator = GetOrCreateTableQueryCreator(columnAttribute.ForeignTable);
 
                     CreateLeftJoinForForeignColumn(foreignTablesQueryList, currentKeyValuePair, foreignTableQueryCreator);
 
@@ -123,19 +127,17 @@ namespace Handy.QueryInteractions
                 }
 
                 translatedQuery.Append(mr_PropertyQueryCreator.GetPropertyName(currentKeyValuePair));
-                translatedQuery.Append(", ");
+
+                if (index != propertiesCount - 1)
+                {
+                    translatedQuery.Append(", ");
+                }
             }
 
-            translatedQuery.Remove(translatedQuery.Length - 2, 1);
             translatedQuery.Append(" FROM ");
             translatedQuery.Append(mr_PropertyQueryCreator.GetTableName());
             translatedQuery.Append(" ");
-
-            char[] foreignTablesLeftJoinQuery = foreignTablesQueryList.Values
-                .SelectMany(currentQuery => currentQuery)
-                .ToArray();
-
-            translatedQuery.Append(foreignTablesLeftJoinQuery);
+            translatedQuery.AppendStringArray(foreignTablesQueryList.Values.ToArray());
 
             return translatedQuery.ToString();
         }
