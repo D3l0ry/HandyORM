@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Text;
+using System.Xml.Linq;
 
 using Handy.QueryInteractions;
 
@@ -17,8 +18,6 @@ namespace Handy
         private readonly Expression mr_Expression;
 
         internal TableManager(SqlConnection sqlConnection) : this(null, null, sqlConnection) { }
-
-        internal TableManager(TableQueryProvider<Table> tableQueryProvider, SqlConnection sqlConnection) : this(tableQueryProvider, null, sqlConnection) { }
 
         internal TableManager(TableQueryProvider<Table> tableQueryProvider, Expression expression, SqlConnection sqlConnection)
         {
@@ -34,10 +33,16 @@ namespace Handy
         {
             TablePropertyQueryManager propertyQueryCreator = mr_TableQueryProvider.Extensions.Creator.PropertyQueryCreator;
 
-            string createElementQuery = $"INSERT INTO {propertyQueryCreator.GetTableName()} " +
-                $"{propertyQueryCreator.GetTableProperties()} VALUES {propertyQueryCreator.GetTablePropertiesValue(newElement)};";
+            StringBuilder stringBuilder = new StringBuilder("INSERT INTO ");
 
-            mr_TableQueryProvider.Extensions.Connection.ExecuteNonQuery(createElementQuery);
+            stringBuilder.Append(propertyQueryCreator.GetTableName());
+            stringBuilder.Append(' ');
+            stringBuilder.Append(propertyQueryCreator.GetTableProperties());
+            stringBuilder.Append(" VALUES ");
+            stringBuilder.Append(propertyQueryCreator.GetTablePropertiesValue(newElement));
+            stringBuilder.Append(';');
+
+            mr_TableQueryProvider.Extensions.Connection.ExecuteNonQuery(stringBuilder.ToString());
         }
 
         public IdType AddAndOutputId<IdType>(Table newElement) where IdType : struct
@@ -46,11 +51,19 @@ namespace Handy
 
             TablePropertyQueryManager propertyQueryCreator = mr_TableQueryProvider.Extensions.Creator.PropertyQueryCreator;
 
-            string createElementQuery = $"INSERT INTO {propertyQueryCreator.GetTableName()} " +
-                $"{propertyQueryCreator.GetTableProperties()} OUTPUT INSERTED.[{propertyQueryCreator.PrimaryKey.Value.Name}] " +
-                $"VALUES {propertyQueryCreator.GetTablePropertiesValue(newElement)};";
+            StringBuilder stringBuilder = new StringBuilder("INSERT INTO ");
 
-            SqlDataReader dataReader = mr_TableQueryProvider.Extensions.Connection.ExecuteReader(createElementQuery);
+            stringBuilder.Append(propertyQueryCreator.GetTableName());
+            stringBuilder.Append(' ');
+            stringBuilder.Append(propertyQueryCreator.GetTableProperties());
+            stringBuilder.Append(" OUTPUT INSERTED.[");
+            stringBuilder.Append(propertyQueryCreator.PrimaryKey.Value.Name);
+            stringBuilder.Append("]");
+            stringBuilder.Append(" VALUES ");
+            stringBuilder.Append(propertyQueryCreator.GetTablePropertiesValue(newElement));
+            stringBuilder.Append(';');
+
+            SqlDataReader dataReader = mr_TableQueryProvider.Extensions.Connection.ExecuteReader(stringBuilder.ToString());
 
             ConvertManager convertManager = new ConvertManager(idType);
 
@@ -75,10 +88,16 @@ namespace Handy
             {
                 foreach (Table currentElement in newElements)
                 {
-                    string createElementQuery = $"INSERT INTO {propertyQueryCreator.GetTableName()} " +
-                        $"{propertyQueryCreator.GetTableProperties()} VALUES {propertyQueryCreator.GetTablePropertiesValue(currentElement)};";
+                    StringBuilder stringBuilder = new StringBuilder("INSERT INTO ");
 
-                    sqlCommand.CommandText = createElementQuery;
+                    stringBuilder.Append(propertyQueryCreator.GetTableName());
+                    stringBuilder.Append(' ');
+                    stringBuilder.Append(propertyQueryCreator.GetTableProperties());
+                    stringBuilder.Append(" VALUES ");
+                    stringBuilder.Append(propertyQueryCreator.GetTablePropertiesValue(currentElement));
+                    stringBuilder.Append(';');
+
+                    sqlCommand.CommandText = stringBuilder.ToString();
 
                     sqlCommand.ExecuteNonQuery();
                 }
@@ -97,30 +116,45 @@ namespace Handy
         {
             TablePropertyQueryManager propertyQueryCreator = mr_TableQueryProvider.Extensions.Creator.PropertyQueryCreator;
 
-            string createElementQuery = $"UPDATE {propertyQueryCreator.GetTableName()} SET " +
-                $"{propertyQueryCreator.GetTablePropertiesNameAndValue(element)}" +
-                $" WHERE {propertyQueryCreator.GetPropertyName(mr_TableQueryProvider.Extensions.Creator.PropertyQueryCreator.PrimaryKey)} = " +
-                $"{TablePropertyQueryManager.ConvertFieldQuery(mr_TableQueryProvider.Extensions.Creator.PropertyQueryCreator.PrimaryKey.Key.GetValue(element))};";
+            StringBuilder stringBuilder = new StringBuilder("UPDATE ");
 
-            mr_TableQueryProvider.Extensions.Connection.ExecuteNonQuery(createElementQuery);
+            stringBuilder.Append(propertyQueryCreator.GetTableName());
+            stringBuilder.Append(" SET ");
+            stringBuilder.Append(propertyQueryCreator.GetTablePropertiesNameAndValue(element));
+            stringBuilder.Append(" WHERE ");
+            stringBuilder.Append(propertyQueryCreator.GetPropertyName(mr_TableQueryProvider.Extensions.Creator.PropertyQueryCreator.PrimaryKey));
+            stringBuilder.Append(" = ");
+            stringBuilder.Append(TablePropertyQueryManager.ConvertFieldQuery(mr_TableQueryProvider.Extensions.Creator.PropertyQueryCreator.PrimaryKey.Key.GetValue(element)));
+            stringBuilder.Append(';');
+
+            mr_TableQueryProvider.Extensions.Connection.ExecuteNonQuery(stringBuilder.ToString());
         }
 
         public void Delete(Table element)
         {
             TablePropertyQueryManager propertyQueryCreator = mr_TableQueryProvider.Extensions.Creator.PropertyQueryCreator;
 
-            string createElementQuery = $"DELETE FROM {propertyQueryCreator.GetTableName()}" +
-                $" WHERE {propertyQueryCreator.GetPropertyName(mr_TableQueryProvider.Extensions.Creator.PropertyQueryCreator.PrimaryKey)} = " +
-                $"{TablePropertyQueryManager.ConvertFieldQuery(mr_TableQueryProvider.Extensions.Creator.PropertyQueryCreator.PrimaryKey.Key.GetValue(element))};";
+            StringBuilder stringBuilder = new StringBuilder("DELETE FROM ");
 
-            mr_TableQueryProvider.Extensions.Connection.ExecuteNonQuery(createElementQuery);
+            stringBuilder.Append(propertyQueryCreator.GetTableName());
+            stringBuilder.Append(" WHERE ");
+            stringBuilder.Append(propertyQueryCreator.GetPropertyName(mr_TableQueryProvider.Extensions.Creator.PropertyQueryCreator.PrimaryKey));
+            stringBuilder.Append(" = ");
+            stringBuilder.Append(TablePropertyQueryManager.ConvertFieldQuery(mr_TableQueryProvider.Extensions.Creator.PropertyQueryCreator.PrimaryKey.Key.GetValue(element)));
+            stringBuilder.Append(';');
+
+            mr_TableQueryProvider.Extensions.Connection.ExecuteNonQuery(stringBuilder.ToString());
         }
 
         public void Delete(Expression<Func<Table, bool>> expression)
         {
-            StringBuilder createElementQuery = new StringBuilder($"DELETE {mr_TableQueryProvider.Extensions.Translator.Translate(expression, false)}");
+            StringBuilder stringBuilder = new StringBuilder($"DELETE FROM ");
 
-            mr_TableQueryProvider.Extensions.Connection.ExecuteNonQuery(createElementQuery.ToString());
+            stringBuilder.Append(mr_TableQueryProvider.Extensions.Creator.PropertyQueryCreator.GetTableName());
+            stringBuilder.Append(" WHERE ");
+            stringBuilder.Append(mr_TableQueryProvider.Extensions.Translator.Translate(expression));
+
+            mr_TableQueryProvider.Extensions.Connection.ExecuteNonQuery(stringBuilder.ToString());
         }
 
         public void DeleteRange(IEnumerable<Table> removedElements)
@@ -141,11 +175,16 @@ namespace Handy
             {
                 foreach (Table currentElement in removedElements)
                 {
-                    string createElementQuery = $"DELETE FROM {propertyQueryCreator.GetTableName()}" +
-                        $" WHERE {propertyQueryCreator.GetPropertyName(mr_TableQueryProvider.Extensions.Creator.PropertyQueryCreator.PrimaryKey)} = " +
-                        $"{TablePropertyQueryManager.ConvertFieldQuery(mr_TableQueryProvider.Extensions.Creator.PropertyQueryCreator.PrimaryKey.Key.GetValue(currentElement))};";
+                    StringBuilder stringBuilder = new StringBuilder("DELETE FROM ");
 
-                    sqlCommand.CommandText = createElementQuery;
+                    stringBuilder.Append(propertyQueryCreator.GetTableName());
+                    stringBuilder.Append(" WHERE ");
+                    stringBuilder.Append(propertyQueryCreator.GetPropertyName(mr_TableQueryProvider.Extensions.Creator.PropertyQueryCreator.PrimaryKey));
+                    stringBuilder.Append(" = ");
+                    stringBuilder.Append(TablePropertyQueryManager.ConvertFieldQuery(mr_TableQueryProvider.Extensions.Creator.PropertyQueryCreator.PrimaryKey.Key.GetValue(currentElement)));
+                    stringBuilder.Append(';');
+
+                    sqlCommand.CommandText = stringBuilder.ToString();
 
                     sqlCommand.ExecuteNonQuery();
                 }
