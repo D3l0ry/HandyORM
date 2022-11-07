@@ -105,19 +105,5 @@ namespace System.Linq
                     )
                 ).FirstOrDefault();
         }
-
-        public static string GetQuery<TSource>(this ITableQueryable<TSource> source) where TSource : class
-        {
-            if (source is null)
-            {
-                throw new ArgumentNullException(nameof(source));
-            }
-
-            ITableQueryHelper tableQueryProvider = (ITableQueryHelper)source.Provider;
-
-            string query = tableQueryProvider.Extensions.Translator.Translate(source.Expression);
-
-            return query;
-        }
     }
 }
