@@ -67,8 +67,6 @@ namespace Handy.Converters
 
             KeyValuePair<PropertyInfo, ColumnAttribute>[] tableProperties = mr_QueryCreator.PropertyQueryCreator.Properties;
 
-            int columnOrdinal = 0;
-
             foreach (KeyValuePair<PropertyInfo, ColumnAttribute> currentKeyValuePair in tableProperties)
             {
                 PropertyInfo currentProperty = currentKeyValuePair.Key;
@@ -86,7 +84,9 @@ namespace Handy.Converters
                     continue;
                 }
 
-                object readerValue = dataReader.GetValue(columnOrdinal++);
+                int columnOrdinal = dataReader.GetOrdinal(currentColumnAttribute.Name);
+
+                object readerValue = dataReader.GetValue(columnOrdinal);
 
                 if (readerValue is DBNull)
                 {

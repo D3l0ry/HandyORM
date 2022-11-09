@@ -6,6 +6,7 @@ using System.Linq.Expressions;
 using System.Text;
 using System.Xml.Linq;
 
+using Handy.Converters.Generic;
 using Handy.QueryInteractions;
 
 using Microsoft.Data.SqlClient;
@@ -206,6 +207,19 @@ namespace Handy
             string createElementQuery = $"DELETE FROM {propertyQueryCreator.GetTableName()};";
 
             mr_TableQueryProvider.Extensions.Connection.ExecuteNonQuery(createElementQuery);
+        }
+
+        public IEnumerable<Table> FromSql(string query)
+        {
+            SqlConnection connection = mr_TableQueryProvider.Connection;
+
+            TableConvertManager<Table> tableConvertManager = connection.GetTableConverter<Table>();
+
+            SqlDataReader dataReader = connection.ExecuteReader(query);
+
+            IEnumerable<Table> value = tableConvertManager.GetObjectsEnumerable(dataReader);
+
+            return value;
         }
 
         public IEnumerator<Table> GetEnumerator() => mr_TableQueryProvider.Execute(mr_Expression).GetEnumerator();
