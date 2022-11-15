@@ -1,8 +1,5 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Reflection;
-
-using Microsoft.Data.SqlClient;
+﻿using System.Collections.Generic;
+using System.Data.Common;
 
 namespace Handy.Converters.Generic
 {
@@ -15,36 +12,14 @@ namespace Handy.Converters.Generic
         /// </summary>
         /// <param name="dataReader"></param>
         /// <returns></returns>
-        private new T GetInternalObject(SqlDataReader dataReader)
-        {
-            if (dataReader.FieldCount == 1)
-            {
-                return (T)dataReader.GetValue(0);
-            }
-
-            T element = new T();
-
-            foreach (PropertyInfo currentProperty in ObjectType.GetProperties())
-            {
-                object readerValue = dataReader[currentProperty.Name];
-
-                if (readerValue is DBNull)
-                {
-                    continue;
-                }
-
-                currentProperty.SetValue(element, readerValue);
-            }
-
-            return element;
-        }
+        private new T GetInternalObject(DbDataReader dataReader) => (T)base.GetInternalObject(dataReader);
 
         /// <summary>
         /// Получение массива объектов из таблицы
         /// </summary>
         /// <param name="dataReader"></param>
         /// <returns></returns>
-        public new IEnumerable<T> GetObjectsEnumerable(SqlDataReader dataReader)
+        public new IEnumerable<T> GetObjectsEnumerable(DbDataReader dataReader)
         {
             using (dataReader)
             {
