@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Text;
 
 namespace Handy.Extensions
@@ -8,12 +7,12 @@ namespace Handy.Extensions
     {
         public static StringBuilder AppendStringArray(this StringBuilder stringBuilder, string[] values)
         {
-            if(values == null)
+            if (values == null)
             {
                 throw new ArgumentNullException(nameof(values));
             }
 
-            for(int index = 0; index < values.Length; index++)
+            for (int index = 0; index < values.Length; index++)
             {
                 string currentString = values[index];
 

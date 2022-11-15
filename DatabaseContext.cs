@@ -1,8 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Data.Common;
 using System.Linq;
-
-using Microsoft.Data.SqlClient;
 
 namespace Handy
 {
@@ -11,23 +10,43 @@ namespace Handy
     /// </summary>
     public abstract class DatabaseContext : IDisposable
     {
-        private readonly SqlConnection mr_SqlConnection;
+        private readonly ContextOptions mr_Options;
         private readonly Dictionary<Type, ITableQueryable> mr_Tables;
+
+        protected DatabaseContext()
+        {
+            ContextOptionsBuilder optionsBuilder = new ContextOptionsBuilder();
+
+            OnConfigure(optionsBuilder);
+
+            mr_Options = optionsBuilder.Build();
+            mr_Tables = new Dictionary<Type, ITableQueryable>();
+
+            mr_Options.Connection.ConnectionString = mr_Options.ConnectionString;
+            mr_Options.Connection.Open();
+        }
 
         protected DatabaseContext(string connection)
         {
-            if (string.IsNullOrWhiteSpace(connection))
-            {
-                throw new ArgumentNullException(nameof(connection));
-            }
+            ContextOptionsBuilder optionsBuilder = new ContextOptionsBuilder();
+            optionsBuilder.UseConnectionString(connection);
 
+            OnConfigure(optionsBuilder);
+
+            mr_Options = optionsBuilder.Build();
             mr_Tables = new Dictionary<Type, ITableQueryable>();
-            mr_SqlConnection = new SqlConnection(connection);
 
-            mr_SqlConnection.Open();
+            mr_Options.Connection.ConnectionString = mr_Options.ConnectionString;
+            mr_Options.Connection.Open();
         }
 
-        public SqlConnection Connection => mr_SqlConnection;
+        public DbConnection Connection => mr_Options.Connection;
+
+        /// <summary>
+        /// Вызывается при инициализации и до момента подключения к бд
+        /// </summary>
+        /// <param name="options"></param>
+        protected abstract void OnConfigure(ContextOptionsBuilder options);
 
         /// <summary>
         /// Метод для вызова процедур базы данных.
@@ -37,10 +56,10 @@ namespace Handy
         /// <param name="procedure">Имя хранимой процедуры</param>
         /// <param name="arguments">Аргументы, которые передаются в процедуру. Аргументы должны идти в порядке параметров метода</param>
         /// <returns></returns>
-        protected virtual T ExecuteProcedure<T>(string procedure, params object[] arguments) => mr_SqlConnection.ExecuteProcedure<T>(procedure, arguments);
+        protected virtual T ExecuteProcedure<T>(string procedure, params object[] arguments) => mr_Options.Connection.ExecuteProcedure<T>(procedure, arguments);
 
         /// <summary>
-        /// Получает объект TableManager с указанным типо, который определяет модель таблицы из базы данных
+        /// Получает объект TableManager с указанным типом, который определяет модель таблицы из базы данных
         /// </summary>
         /// <typeparam name="Table">Тип, определяющий модель таблицы из базы данных</typeparam>
         /// <returns></returns>
@@ -55,7 +74,7 @@ namespace Handy
                 return (TableManager<Table>)selectedTable;
             }
 
-            TableManager<Table> newTable = new TableManager<Table>(mr_SqlConnection);
+            TableManager<Table> newTable = new TableManager<Table>(mr_Options);
 
             mr_Tables.Add(tableType, newTable);
 
@@ -65,7 +84,7 @@ namespace Handy
         public void Dispose()
         {
             mr_Tables.Clear();
-            mr_SqlConnection.Close();
+            mr_Options.Connection.Close();
         }
     }
 }

@@ -1,11 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Data.Common;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 
 using Handy.QueryInteractions;
-
-using Microsoft.Data.SqlClient;
 
 namespace Handy.Converters
 {
@@ -14,18 +13,20 @@ namespace Handy.Converters
     /// </summary>
     public class TableConvertManager : ConvertManager
     {
-        private readonly SqlConnection mr_Connection;
-        private readonly TableQueryCreator mr_QueryCreator;
+        private readonly DbConnection mr_Connection;
+        private readonly TablePropertyQueryManager mr_PropertyQueryManager;
 
-        internal TableConvertManager(Type tableType, SqlConnection connection) : base(tableType)
+        internal TableConvertManager(Type tableType, DbConnection connection) : base(tableType)
         {
             if (connection == null)
             {
                 throw new ArgumentNullException(nameof(connection));
             }
 
+            TableQueryCreator tableQueryCreator = TableQueryCreator.GetOrCreateTableQueryCreator(tableType);
+
             mr_Connection = connection;
-            mr_QueryCreator = TableQueryCreator.GetOrCreateTableQueryCreator(tableType);
+            mr_PropertyQueryManager = tableQueryCreator.PropertyQueryCreator;
         }
 
         /// <summary>
@@ -41,15 +42,15 @@ namespace Handy.Converters
 
             if (currentProperty.PropertyType.GetGenericTypeDefinition() != foreignTableType)
             {
-                throw new ArgumentException("Свойство не является типом ForeignTable");
+                throw new ArgumentException($"Свойство не является типом {foreignTableType.Name}");
             }
 
-            PropertyInfo mainTableForeignKeyProperty = mr_QueryCreator.PropertyQueryCreator
+            PropertyInfo mainTableForeignKeyProperty = mr_PropertyQueryManager
                 .GetProperty(currentColumnAttribute.ForeignKeyName).Key;
 
             object foreignTable = currentProperty.PropertyType
                 .GetConstructor(BindingFlags.NonPublic | BindingFlags.Instance, null, new Type[]
-                    { typeof(object), typeof(PropertyInfo), typeof(SqlConnection) }, null)
+                    { typeof(object), typeof(PropertyInfo), typeof(DbConnection) }, null)
                 .Invoke(new object[] { mainTable, mainTableForeignKeyProperty, mr_Connection });
 
             currentProperty.SetValue(mainTable, foreignTable);
@@ -61,11 +62,11 @@ namespace Handy.Converters
         /// <param name="dataReader"></param>
         /// <returns></returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        protected override object GetInternalObject(SqlDataReader dataReader)
+        protected override object GetInternalObject(DbDataReader dataReader)
         {
             object table = Activator.CreateInstance(ObjectType);
 
-            KeyValuePair<PropertyInfo, ColumnAttribute>[] tableProperties = mr_QueryCreator.PropertyQueryCreator.Properties;
+            KeyValuePair<PropertyInfo, ColumnAttribute>[] tableProperties = mr_PropertyQueryManager.Properties;
 
             foreach (KeyValuePair<PropertyInfo, ColumnAttribute> currentKeyValuePair in tableProperties)
             {

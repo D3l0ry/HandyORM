@@ -1,16 +1,15 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Data.Common;
 using System.Linq;
 
 using Handy.Converters.Generic;
-
-using Microsoft.Data.SqlClient;
 
 namespace Handy
 {
     public static class SqlQueryExtensions
     {
-        public static IEnumerable<T> Query<T>(this SqlConnection connection, string query) where T : new()
+        public static IEnumerable<T> Query<T>(this DbConnection connection, string query) where T : new()
         {
             if (connection == null)
             {
@@ -22,7 +21,7 @@ namespace Handy
                 throw new ArgumentNullException(nameof(query));
             }
 
-            SqlDataReader dataReader = connection.ExecuteReader(query);
+            DbDataReader dataReader = connection.ExecuteReader(query);
             ConvertManager<T> convertManager = new ConvertManager<T>();
 
             IEnumerable<T> objectsEnumerable = convertManager.GetObjectsEnumerable(dataReader);
@@ -30,8 +29,8 @@ namespace Handy
             return objectsEnumerable;
         }
 
-        public static T First<T>(this SqlConnection connection, string query) where T : new() => connection.Query<T>(query).First();
+        public static T First<T>(this DbConnection connection, string query) where T : new() => connection.Query<T>(query).First();
 
-        public static T FirstOrDefault<T>(this SqlConnection connection, string query) where T : new() => connection.Query<T>(query).FirstOrDefault();
+        public static T FirstOrDefault<T>(this DbConnection connection, string query) where T : new() => connection.Query<T>(query).FirstOrDefault();
     }
 }

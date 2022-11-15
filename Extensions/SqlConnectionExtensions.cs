@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Data;
+using System.Data.Common;
 using System.Diagnostics;
 using System.Reflection;
 
@@ -7,13 +8,11 @@ using Handy.Converters;
 using Handy.Converters.Generic;
 using Handy.Extensions;
 
-using Microsoft.Data.SqlClient;
-
 namespace Handy
 {
     internal static class SqlConnectionExtensions
     {
-        private static TResult ConvertReader<TResult>(this SqlConnection sqlConnection, SqlDataReader dataReader)
+        public static TResult ConvertReader<TResult>(this DbConnection sqlConnection, DbDataReader dataReader)
         {
             if (dataReader == null)
             {
@@ -43,9 +42,9 @@ namespace Handy
             return (TResult)convertManager.GetObject(dataReader);
         }
 
-        public static SqlCommand CreateProcedureCommand(this SqlConnection sqlConnection, string procedureName)
+        public static DbCommand CreateProcedureCommand(this DbConnection sqlConnection, string procedureName)
         {
-            SqlCommand dataCommand = sqlConnection.CreateCommand();
+            DbCommand dataCommand = sqlConnection.CreateCommand();
 
             dataCommand.CommandType = CommandType.StoredProcedure;
             dataCommand.CommandText = procedureName;
@@ -53,7 +52,7 @@ namespace Handy
             return dataCommand;
         }
 
-        public static void ExecuteNonQuery(this SqlConnection sqlConnection, string query)
+        public static void ExecuteNonQuery(this DbConnection sqlConnection, string query)
         {
             if (sqlConnection == null)
             {
@@ -65,7 +64,7 @@ namespace Handy
                 throw new ArgumentNullException(nameof(query));
             }
 
-            using (SqlCommand sqlCommand = sqlConnection.CreateCommand())
+            using (DbCommand sqlCommand = sqlConnection.CreateCommand())
             {
                 sqlCommand.CommandText = query;
 
@@ -73,7 +72,7 @@ namespace Handy
             }
         }
 
-        public static SqlDataReader ExecuteReader(this SqlConnection sqlConnection, string query)
+        public static DbDataReader ExecuteReader(this DbConnection sqlConnection, string query)
         {
             if (sqlConnection == null)
             {
@@ -85,7 +84,7 @@ namespace Handy
                 throw new ArgumentNullException(nameof(query));
             }
 
-            using (SqlCommand sqlCommand = sqlConnection.CreateCommand())
+            using (DbCommand sqlCommand = sqlConnection.CreateCommand())
             {
                 sqlCommand.CommandText = query;
 
@@ -103,7 +102,7 @@ namespace Handy
         /// <param name="arguments">Аргументы, которые передаются в процедуру. Аргументы должны идти в порядке параметров метода</param>
         /// <returns></returns>
         /// <exception cref="ArgumentNullException"></exception>
-        public static T ExecuteProcedure<T>(this SqlConnection sqlConnection, string procedureName, params object[] arguments)
+        public static T ExecuteProcedure<T>(this DbConnection sqlConnection, string procedureName, params object[] arguments)
         {
             if (sqlConnection == null)
             {
@@ -115,14 +114,14 @@ namespace Handy
                 throw new ArgumentNullException(nameof(procedureName));
             }
 
-            SqlCommand dataCommand = sqlConnection.CreateProcedureCommand(procedureName);
+            DbCommand dataCommand = sqlConnection.CreateProcedureCommand(procedureName);
 
             StackFrame stackFrame = new StackFrame(2);
             MethodBase callingMethod = stackFrame.GetMethod();
 
             dataCommand.AddArguments(arguments, stackFrame, callingMethod);
 
-            SqlDataReader dataReader = dataCommand.ExecuteReader();
+            DbDataReader dataReader = dataCommand.ExecuteReader();
 
             T result = sqlConnection.ConvertReader<T>(dataReader);
 
@@ -132,9 +131,9 @@ namespace Handy
             return result;
         }
 
-        public static TableConvertManager<Table> GetTableConverter<Table>(this SqlConnection connection) where Table : class, new() => new TableConvertManager<Table>(connection);
+        public static TableConvertManager<Table> GetTableConverter<Table>(this DbConnection connection) where Table : class, new() => new TableConvertManager<Table>(connection);
 
-        public static TableConvertManager GetTableConverter(this SqlConnection connection, Type tableType)
+        public static TableConvertManager GetTableConverter(this DbConnection connection, Type tableType)
         {
             if (connection == null)
             {

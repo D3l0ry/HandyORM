@@ -87,42 +87,42 @@
             Тип объекта
             </summary>
         </member>
-        <member name="M:Handy.ConvertManager.GetInternalObject(Microsoft.Data.SqlClient.SqlDataReader)">
+        <member name="M:Handy.ConvertManager.GetInternalObject(System.Data.Common.DbDataReader)">
             <summary>
             Конвертирует поля из строки SqlDataReader в объекты выбранного типа
             </summary>
             <param name="dataReader"></param>
             <returns></returns>
         </member>
-        <member name="M:Handy.ConvertManager.GetObjectsEnumerable(Microsoft.Data.SqlClient.SqlDataReader)">
+        <member name="M:Handy.ConvertManager.GetObjectsEnumerable(System.Data.Common.DbDataReader)">
             <summary>
             Получение массива объектов из таблицы
             </summary>
             <param name="dataReader"></param>
             <returns></returns>
         </member>
-        <member name="M:Handy.ConvertManager.GetObjects(Microsoft.Data.SqlClient.SqlDataReader)">
+        <member name="M:Handy.ConvertManager.GetObjects(System.Data.Common.DbDataReader)">
             <summary>
             Получение массива объектов из таблицы
             </summary>
             <param name="dataReader"></param>
             <returns></returns>
         </member>
-        <member name="M:Handy.ConvertManager.GetObject(Microsoft.Data.SqlClient.SqlDataReader)">
+        <member name="M:Handy.ConvertManager.GetObject(System.Data.Common.DbDataReader)">
             <summary>
             Получение объекта из таблицы
             </summary>
             <param name="dataReader"></param>
             <returns></returns>
         </member>
-        <member name="M:Handy.Converters.Generic.ConvertManager`1.GetInternalObject(Microsoft.Data.SqlClient.SqlDataReader)">
+        <member name="M:Handy.Converters.Generic.ConvertManager`1.GetInternalObject(System.Data.Common.DbDataReader)">
             <summary>
             Конвертирует поля из строки SqlDataReader в объекты выбранного типа
             </summary>
             <param name="dataReader"></param>
             <returns></returns>
         </member>
-        <member name="M:Handy.Converters.Generic.ConvertManager`1.GetObjectsEnumerable(Microsoft.Data.SqlClient.SqlDataReader)">
+        <member name="M:Handy.Converters.Generic.ConvertManager`1.GetObjectsEnumerable(System.Data.Common.DbDataReader)">
             <summary>
             Получение массива объектов из таблицы
             </summary>
@@ -142,7 +142,7 @@
             <param name="currentProperty"></param>
             <param name="currentColumnAttribute"></param>
         </member>
-        <member name="M:Handy.Converters.TableConvertManager.GetInternalObject(Microsoft.Data.SqlClient.SqlDataReader)">
+        <member name="M:Handy.Converters.TableConvertManager.GetInternalObject(System.Data.Common.DbDataReader)">
             <summary>
             Получение объекта из таблицы
             </summary>
@@ -153,6 +153,12 @@
             <summary>
             Абстрактный класс для работы с базой данных и ее таблицами
             </summary>
+        </member>
+        <member name="M:Handy.DatabaseContext.OnContextCreated(Handy.ContextOptionsBuilder)">
+            <summary>
+            Вызывается при инициализации и до момента подключения к бд
+            </summary>
+            <param name="options"></param>
         </member>
         <member name="M:Handy.DatabaseContext.ExecuteProcedure``1(System.String,System.Object[])">
             <summary>
@@ -166,12 +172,12 @@
         </member>
         <member name="M:Handy.DatabaseContext.GetTable``1">
             <summary>
-            Получает объект TableManager с указанным типо, который определяет модель таблицы из базы данных
+            Получает объект TableManager с указанным типом, который определяет модель таблицы из базы данных
             </summary>
             <typeparam name="Table">Тип, определяющий модель таблицы из базы данных</typeparam>
             <returns></returns>
         </member>
-        <member name="M:Handy.SqlConnectionExtensions.ExecuteProcedure``1(Microsoft.Data.SqlClient.SqlConnection,System.String,System.Object[])">
+        <member name="M:Handy.SqlConnectionExtensions.ExecuteProcedure``1(System.Data.Common.DbConnection,System.String,System.Object[])">
             <summary>
             Метод для вызова процедуры из базы данных.
             Если процедура имеет принимаемые аргументы, то ExecuteProcedure должен обязательно вызываться в методе

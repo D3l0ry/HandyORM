@@ -8,7 +8,7 @@ using Handy.Extensions;
 
 namespace Handy.QueryInteractions
 {
-    internal class TableQueryCreator
+    public class TableQueryCreator
     {
         private static readonly Dictionary<Type, TableQueryCreator> ms_TableQueryCreators = new Dictionary<Type, TableQueryCreator>();
 

@@ -5,29 +5,15 @@ using System.Linq.Expressions;
 using System.Reflection;
 using System.Text;
 
-namespace Handy.QueryInteractions
+using Handy.QueryInteractions;
+
+namespace Handy.ExpressionInteractions
 {
-    internal class ExpressionTranslator : ExpressionVisitor
+    internal class SqlExpressionTranslator : ExpressionTranslator
     {
-        private readonly TableQueryCreator mr_TableQueryCreator;
-        private readonly StringBuilder mr_TranslatedQuery;
-
-        public ExpressionTranslator(TableQueryCreator tableQueryCreator)
-        {
-            mr_TableQueryCreator = tableQueryCreator;
-            mr_TranslatedQuery = new StringBuilder();
-        }
-
-        internal string Translate(Expression expression)
-        {
-            Visit(expression);
-
-            return mr_TranslatedQuery.Append(';').ToString();
-        }
-
         protected override Expression VisitNew(NewExpression node)
         {
-            mr_TranslatedQuery.Append(GetFieldFromLambda(node));
+            QueryBuilder.Append(GetFieldFromLambda(node));
 
             return node;
         }
@@ -40,14 +26,7 @@ namespace Handy.QueryInteractions
             {
                 try
                 {
-                    if (method.Name == "Contains")
-                    {
-                        return this.CallContainsMethod(node, mr_TranslatedQuery);
-                    }
-                    else
-                    {
-                        mr_TranslatedQuery.Append(GetFieldFromLambda(node));
-                    }
+                    QueryBuilder.Append(GetFieldFromLambda(node));
                 }
                 catch
                 {
@@ -60,11 +39,11 @@ namespace Handy.QueryInteractions
             switch (method.Name)
             {
                 case "Where":
-                return this.CallWhereMethod(node, mr_TranslatedQuery);
+                return this.CallWhereMethod(node, QueryBuilder);
 
                 case "First":
                 case "FirstOrDefault":
-                return this.CallFirstMethod(node, mr_TranslatedQuery);
+                return this.CallFirstMethod(node, QueryBuilder);
             }
 
             throw new NotSupportedException($"Указанный метод {method.Name} не поддерживается");
@@ -78,45 +57,55 @@ namespace Handy.QueryInteractions
             {
                 case ExpressionType.And:
                 case ExpressionType.AndAlso:
-                mr_TranslatedQuery.Append(" AND ");
+                QueryBuilder.Append(" AND ");
                 break;
                 case ExpressionType.Or:
                 case ExpressionType.OrElse:
-                mr_TranslatedQuery.Append(" OR ");
+                QueryBuilder.Append(" OR ");
                 break;
                 case ExpressionType.Equal:
-                mr_TranslatedQuery.Append(" = ");
-                break;
-                case ExpressionType.NotEqual:
-                if (binary.Right is ConstantExpression constant)
+                if (binary.Right is ConstantExpression constantEqual)
                 {
-                    if (constant.Value is null)
+                    if (constantEqual.Value == null)
                     {
-                        mr_TranslatedQuery.Append(" IS NOT ");
+                        QueryBuilder.Append(" IS NOT ");
 
                         break;
                     }
                 }
 
-                mr_TranslatedQuery.Append(" <> ");
+                QueryBuilder.Append(" = ");
+                break;
+                case ExpressionType.NotEqual:
+                if (binary.Right is ConstantExpression constantNotEqual)
+                {
+                    if (constantNotEqual.Value == null)
+                    {
+                        QueryBuilder.Append(" IS NOT ");
+
+                        break;
+                    }
+                }
+
+                QueryBuilder.Append(" <> ");
                 break;
                 case ExpressionType.LessThan:
-                mr_TranslatedQuery.Append(" < ");
+                QueryBuilder.Append(" < ");
                 break;
                 case ExpressionType.LessThanOrEqual:
-                mr_TranslatedQuery.Append(" <= ");
+                QueryBuilder.Append(" <= ");
                 break;
                 case ExpressionType.GreaterThan:
-                mr_TranslatedQuery.Append(" > ");
+                QueryBuilder.Append(" > ");
                 break;
                 case ExpressionType.GreaterThanOrEqual:
-                mr_TranslatedQuery.Append(" >= ");
+                QueryBuilder.Append(" >= ");
                 break;
                 case ExpressionType.IsTrue:
-                mr_TranslatedQuery.Append(" = TRUE");
+                QueryBuilder.Append(" = TRUE");
                 break;
                 case ExpressionType.IsFalse:
-                mr_TranslatedQuery.Append(" = FALSE");
+                QueryBuilder.Append(" = FALSE");
                 break;
                 default:
                 throw new NotSupportedException($"The binary operator '{binary.NodeType}' is not supported");
@@ -129,9 +118,9 @@ namespace Handy.QueryInteractions
 
         protected override Expression VisitMember(MemberExpression member)
         {
-            if (member.Expression is null)
+            if (member.Expression == null)
             {
-                mr_TranslatedQuery.Append(GetFieldFromLambda(member));
+                QueryBuilder.Append(GetFieldFromLambda(member));
 
                 return member;
             }
@@ -150,7 +139,7 @@ namespace Handy.QueryInteractions
                 case ExpressionType.MemberAccess:
                 case ExpressionType.Constant:
                 case ExpressionType.TypeAs:
-                mr_TranslatedQuery.Append(GetFieldFromLambda(member));
+                QueryBuilder.Append(GetFieldFromLambda(member));
                 return member;
             }
 
@@ -164,33 +153,32 @@ namespace Handy.QueryInteractions
                 return constant;
             }
 
-            mr_TranslatedQuery.Append(TablePropertyQueryManager.ConvertFieldQuery(constant.Value));
+            string field = TablePropertyQueryManager.ConvertFieldQuery(constant.Value);
+
+            QueryBuilder.Append(field);
 
             return constant;
         }
 
         internal void GetProperty(MemberExpression member)
         {
-            KeyValuePair<PropertyInfo, ColumnAttribute> selectedProperty = mr_TableQueryCreator
+            KeyValuePair<PropertyInfo, ColumnAttribute> selectedProperty = QueryCreator
                 .PropertyQueryCreator
                 .GetProperty(member.Member as PropertyInfo);
 
-            string tableProperty;
+            TablePropertyQueryManager propertyQueryManager = QueryCreator.PropertyQueryCreator;
 
             if (selectedProperty.Value.IsForeignColumn && selectedProperty.Value.ForeignTable != null)
             {
-                tableProperty = TableQueryCreator.GetOrCreateTableQueryCreator(selectedProperty.Value.ForeignTable)
-                   .PropertyQueryCreator
-                   .GetPropertyName(selectedProperty);
-            }
-            else
-            {
-                tableProperty = mr_TableQueryCreator
-                    .PropertyQueryCreator
-                    .GetPropertyName(selectedProperty);
+                TableQueryCreator tableQueryCreator = TableQueryCreator
+                    .GetOrCreateTableQueryCreator(selectedProperty.Value.ForeignTable);
+
+                propertyQueryManager = tableQueryCreator.PropertyQueryCreator;
             }
 
-            mr_TranslatedQuery.Append(tableProperty);
+            string tablePropertName = propertyQueryManager.GetPropertyName(selectedProperty);
+
+            QueryBuilder.Append(tablePropertName);
         }
 
         internal string GetFieldFromLambda(Expression node)
@@ -200,6 +188,13 @@ namespace Handy.QueryInteractions
             string fieldQuery = TablePropertyQueryManager.ConvertFieldQuery(field);
 
             return fieldQuery;
+        }
+
+        public override string ToString(Expression expression)
+        {
+            Visit(expression);
+
+            return QueryBuilder.Append(';').ToString();
         }
     }
 }

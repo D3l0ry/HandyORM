@@ -1,11 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Data.Common;
 using System.Reflection;
+using System.Runtime.CompilerServices;
 using System.Text;
 
 using Handy.QueryInteractions;
-
-using Microsoft.Data.SqlClient;
 
 namespace Handy
 {
@@ -16,11 +16,11 @@ namespace Handy
         private readonly Type mr_TableType;
         private readonly object mr_MainTable;
         private readonly PropertyInfo mr_MainTableForeignKey;
-        private readonly SqlConnection mr_SqlConnection;
+        private readonly DbConnection mr_SqlConnection;
 
         private Table m_Value;
 
-        internal ForeignTable(object mainTable, PropertyInfo mainTableForeignKey, SqlConnection connection)
+        internal ForeignTable(object mainTable, PropertyInfo mainTableForeignKey, DbConnection connection)
         {
             if (mainTable is null)
             {
@@ -90,12 +90,9 @@ namespace Handy
                 }
 
                 string newQuery = GetForeignTableQuery();
+                DbDataReader dataReader = mr_SqlConnection.ExecuteReader(newQuery);
 
-                SqlDataReader dataReader = mr_SqlConnection.ExecuteReader(newQuery);
-
-                m_Value = mr_SqlConnection
-                    .GetTableConverter<Table>()
-                    .GetObject(dataReader);
+                m_Value = mr_SqlConnection.ConvertReader<Table>(dataReader);
 
                 return m_Value;
             }

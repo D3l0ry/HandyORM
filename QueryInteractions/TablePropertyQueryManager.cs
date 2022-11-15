@@ -6,7 +6,7 @@ using System.Text;
 
 namespace Handy.QueryInteractions
 {
-    internal class TablePropertyQueryManager
+    public class TablePropertyQueryManager
     {
         private readonly Type mr_TableType;
 
@@ -66,7 +66,7 @@ namespace Handy.QueryInteractions
             }
         }
 
-        internal string GetTableName()
+        public string GetTableName()
         {
             StringBuilder tableName = new StringBuilder();
 
@@ -80,7 +80,7 @@ namespace Handy.QueryInteractions
             return tableName.ToString();
         }
 
-        internal KeyValuePair<PropertyInfo, ColumnAttribute> GetProperty(string propertyColumnName)
+        public KeyValuePair<PropertyInfo, ColumnAttribute> GetProperty(string propertyColumnName)
         {
             if (string.IsNullOrWhiteSpace(propertyColumnName))
             {
@@ -98,7 +98,7 @@ namespace Handy.QueryInteractions
             return selectedProperty;
         }
 
-        internal KeyValuePair<PropertyInfo, ColumnAttribute> GetProperty(PropertyInfo property)
+        public KeyValuePair<PropertyInfo, ColumnAttribute> GetProperty(PropertyInfo property)
         {
             KeyValuePair<PropertyInfo, ColumnAttribute> selectedProperty = mr_Properties
                 .FirstOrDefault(currentProperty => currentProperty.Key == property);
@@ -111,7 +111,11 @@ namespace Handy.QueryInteractions
             return selectedProperty;
         }
 
-        internal string GetPropertyName(in KeyValuePair<PropertyInfo, ColumnAttribute> property)
+        public ColumnAttribute GetPropertyColumn(string propertyColumnName) => GetProperty(propertyColumnName).Value;
+
+        public ColumnAttribute GetPropertyColumn(PropertyInfo property) => GetProperty(property).Value;
+
+        public string GetPropertyName(in KeyValuePair<PropertyInfo, ColumnAttribute> property)
         {
             StringBuilder propertyName = new StringBuilder();
 
@@ -125,8 +129,13 @@ namespace Handy.QueryInteractions
             return propertyName.ToString();
         }
 
-        internal string GetForeignKeyName(in KeyValuePair<PropertyInfo, ColumnAttribute> property)
+        public string GetForeignKeyName(in KeyValuePair<PropertyInfo, ColumnAttribute> property)
         {
+            if (string.IsNullOrWhiteSpace(property.Value.ForeignKeyName))
+            {
+                throw new ArgumentNullException($"Получение имени внешнего ключа в {property.Key.Name} невозможно! Поле внешнего ключа является пустым");
+            }
+
             StringBuilder foreignKeyName = new StringBuilder();
 
             if (!string.IsNullOrWhiteSpace(mr_TableAttribute.Schema))
@@ -140,7 +149,7 @@ namespace Handy.QueryInteractions
             return foreignKeyName.ToString();
         }
 
-        internal string GetTableProperties()
+        public string GetTableProperties()
         {
             StringBuilder stringProperties = new StringBuilder("(");
 
@@ -161,7 +170,7 @@ namespace Handy.QueryInteractions
             return stringProperties.ToString();
         }
 
-        internal string GetTablePropertiesValue(object table)
+        public string GetTablePropertiesValue(object table)
         {
             StringBuilder stringPropertiesValue = new StringBuilder("(");
 
@@ -182,7 +191,7 @@ namespace Handy.QueryInteractions
             return stringPropertiesValue.ToString();
         }
 
-        internal string GetTablePropertiesNameAndValue(object table)
+        public string GetTablePropertiesNameAndValue(object table)
         {
             StringBuilder stringProperties = new StringBuilder("");
 
@@ -204,7 +213,7 @@ namespace Handy.QueryInteractions
             return stringProperties.ToString();
         }
 
-        internal static string ConvertFieldQuery(object value)
+        public static string ConvertFieldQuery(object value)
         {
             if (value is null)
             {

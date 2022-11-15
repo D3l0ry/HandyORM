@@ -1,11 +1,10 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Data.Common;
 using System.Linq;
 using System.Reflection;
 using System.Runtime.CompilerServices;
-
-using Microsoft.Data.SqlClient;
 
 namespace Handy
 {
@@ -41,7 +40,7 @@ namespace Handy
         /// </summary>
         /// <param name="dataReader"></param>
         /// <returns></returns>
-        protected virtual object GetInternalObject(SqlDataReader dataReader)
+        protected virtual object GetInternalObject(DbDataReader dataReader)
         {
             if (dataReader.FieldCount == 1)
             {
@@ -71,7 +70,7 @@ namespace Handy
         /// <param name="dataReader"></param>
         /// <returns></returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public virtual IEnumerable GetObjectsEnumerable(SqlDataReader dataReader)
+        public virtual IEnumerable GetObjectsEnumerable(DbDataReader dataReader)
         {
             using (dataReader)
             {
@@ -89,7 +88,7 @@ namespace Handy
         /// </summary>
         /// <param name="dataReader"></param>
         /// <returns></returns>
-        public virtual IEnumerable GetObjects(SqlDataReader dataReader)
+        public virtual IEnumerable GetObjects(DbDataReader dataReader)
         {
             IList list = (IList)Activator
                 .CreateInstance(typeof(List<>)
@@ -125,7 +124,7 @@ namespace Handy
         /// <param name="dataReader"></param>
         /// <returns></returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public virtual object GetObject(SqlDataReader dataReader)
+        public virtual object GetObject(DbDataReader dataReader)
         {
             object value = null;
 
