@@ -1,6 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Text;
 
 using Handy.Interfaces;
 using Handy.QueryInteractions;
@@ -10,7 +8,7 @@ namespace Handy.ExpressionInteractions
     internal class ExpressionTranslatorProvider<Translator> : IExpressionTranslatorBuilder
         where Translator : ExpressionTranslator, new()
     {
-        ExpressionTranslator IExpressionTranslatorBuilder.CreateInstance(TableQueryCreator tableQueryCreator)
+        public ExpressionTranslator CreateInstance(TableQueryCreator tableQueryCreator)
         {
             if (tableQueryCreator == null)
             {

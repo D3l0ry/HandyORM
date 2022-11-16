@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.Data.Common;
 using System.Reflection;
-using System.Runtime.CompilerServices;
 using System.Text;
 
 using Handy.QueryInteractions;
@@ -50,14 +49,20 @@ namespace Handy
                 return foundForeingTableQuery;
             }
 
-            TableQueryCreator selectedTableQueryCreator = TableQueryCreator.GetOrCreateTableQueryCreator(mr_TableType);
-            TablePropertyQueryManager selectedTablePropertyQueryManager = selectedTableQueryCreator.PropertyQueryCreator;
-
+            TableQueryCreator selectedTableQueryCreator = TableQueryCreator.GetInstance(mr_TableType);
+            TablePropertyInformation selectedTablePropertyQueryManager = selectedTableQueryCreator.PropertyQueryCreator;
             StringBuilder queryString = new StringBuilder(selectedTableQueryCreator.MainQuery);
 
-            queryString.Insert(6, " TOP 1 ");
+            if (!mr_TableType.IsArray)
+            {
+                queryString.Insert(6, " TOP 1 ");
+            }
+
+            string primaryKeyName = selectedTablePropertyQueryManager
+                .GetPropertyName(selectedTablePropertyQueryManager.PrimaryKey);
+
             queryString.Append($" WHERE ");
-            queryString.Append(selectedTablePropertyQueryManager.GetPropertyName(selectedTablePropertyQueryManager.PrimaryKey));
+            queryString.Append(primaryKeyName);
             queryString.Append("=");
 
             string newForeingTableQuery = queryString.ToString();
@@ -69,13 +74,13 @@ namespace Handy
 
         private string GetForeignTableQuery()
         {
-            StringBuilder stringBuilder = new StringBuilder();
-
             string selectedForeingTableQuery = GetOrCreateForeignTableQuery();
+            StringBuilder stringBuilder = new StringBuilder(selectedForeingTableQuery);
+            string foreignKeyValue = TablePropertyInformation.ConvertFieldQuery(mr_MainTableForeignKey.GetValue(mr_MainTable));
 
             stringBuilder.Append(selectedForeingTableQuery);
-            stringBuilder.Append(TablePropertyQueryManager.ConvertFieldQuery(mr_MainTableForeignKey.GetValue(mr_MainTable)));
-            stringBuilder.Append(";");
+            stringBuilder.Append(foreignKeyValue);
+            stringBuilder.Append(';');
 
             return stringBuilder.ToString();
         }

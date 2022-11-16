@@ -6,17 +6,14 @@ using System.Text;
 
 namespace Handy.QueryInteractions
 {
-    public class TablePropertyQueryManager
+    public class TablePropertyInformation
     {
         private readonly Type mr_TableType;
-
         private readonly TableAttribute mr_TableAttribute;
-
         private readonly KeyValuePair<PropertyInfo, ColumnAttribute> mr_PrimaryKeyProperty;
-
         private readonly KeyValuePair<PropertyInfo, ColumnAttribute>[] mr_Properties;
 
-        public TablePropertyQueryManager(Type tableType, TableAttribute tableAttribute)
+        public TablePropertyInformation(Type tableType, TableAttribute tableAttribute)
         {
             if (tableType is null)
             {
@@ -80,6 +77,8 @@ namespace Handy.QueryInteractions
             return tableName.ToString();
         }
 
+        public KeyValuePair<PropertyInfo, ColumnAttribute> GetProperty(int propertyIndex) => mr_Properties[propertyIndex];
+
         public KeyValuePair<PropertyInfo, ColumnAttribute> GetProperty(string propertyColumnName)
         {
             if (string.IsNullOrWhiteSpace(propertyColumnName))
@@ -110,6 +109,8 @@ namespace Handy.QueryInteractions
 
             return selectedProperty;
         }
+
+        public ColumnAttribute GetPropertyColumn(int propertyIndex) => GetProperty(propertyIndex).Value;
 
         public ColumnAttribute GetPropertyColumn(string propertyColumnName) => GetProperty(propertyColumnName).Value;
 
@@ -149,6 +150,26 @@ namespace Handy.QueryInteractions
             return foreignKeyName.ToString();
         }
 
+        public string GetForeignKeyName(ColumnAttribute propertyColumn)
+        {
+            if (string.IsNullOrWhiteSpace(propertyColumn.ForeignKeyName))
+            {
+                throw new ArgumentNullException($"Получение имени внешнего ключа в {propertyColumn.Name} невозможно! Поле внешнего ключа является пустым");
+            }
+
+            StringBuilder foreignKeyName = new StringBuilder();
+
+            if (!string.IsNullOrWhiteSpace(mr_TableAttribute.Schema))
+            {
+                foreignKeyName.Append($"[{mr_TableAttribute.Schema}].");
+            }
+
+            foreignKeyName
+                .Append($"[{mr_TableAttribute.Name}].[{propertyColumn.ForeignKeyName}]");
+
+            return foreignKeyName.ToString();
+        }
+
         public string GetTableProperties()
         {
             StringBuilder stringProperties = new StringBuilder("(");
@@ -183,10 +204,27 @@ namespace Handy.QueryInteractions
                     continue;
                 }
 
-                stringPropertiesValue.Append($"{ConvertFieldQuery(currentKeyValuePair.Key.GetValue(table))}, ");
+                stringPropertiesValue.Append($"{ConvertFieldQuery(currentKeyValuePair.Key.GetValue(table))},");
             }
 
-            stringPropertiesValue[stringPropertiesValue.Length - 2] = ')';
+            stringPropertiesValue[stringPropertiesValue.Length - 1] = ')';
+
+            return stringPropertiesValue.ToString();
+        }
+
+        public string GetTablesPropertiesValue(IEnumerable<object> tables)
+        {
+            StringBuilder stringPropertiesValue = new StringBuilder();
+
+            foreach (object table in tables)
+            {
+                string newTablePropertiesValue = GetTablePropertiesValue(table);
+
+                stringPropertiesValue.Append(newTablePropertiesValue);
+                stringPropertiesValue.Append(',');
+            }
+
+            stringPropertiesValue[stringPropertiesValue.Length - 1] = ';';
 
             return stringPropertiesValue.ToString();
         }

@@ -1,9 +1,7 @@
 ﻿using System;
 using System.Data.Common;
-using System.Linq.Expressions;
 
 using Handy.ExpressionInteractions;
-using Handy.Interfaces;
 
 namespace Handy
 {
@@ -56,9 +54,9 @@ namespace Handy
                 throw new ArgumentNullException("Connection");
             }
 
-            if(m_ContextOptions.ExpressionTranslatorBuilder == null)
+            if (m_ContextOptions.ExpressionTranslatorBuilder == null)
             {
-                m_ContextOptions.ExpressionTranslatorBuilder = new ExpressionTranslatorProvider<SqlExpressionTranslator>();
+                UseExpression<SqlExpressionTranslator>();
             }
 
             return m_ContextOptions;

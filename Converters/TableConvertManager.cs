@@ -14,7 +14,7 @@ namespace Handy.Converters
     public class TableConvertManager : ConvertManager
     {
         private readonly DbConnection mr_Connection;
-        private readonly TablePropertyQueryManager mr_PropertyQueryManager;
+        private readonly TablePropertyInformation mr_PropertyQueryManager;
 
         internal TableConvertManager(Type tableType, DbConnection connection) : base(tableType)
         {
@@ -23,7 +23,7 @@ namespace Handy.Converters
                 throw new ArgumentNullException(nameof(connection));
             }
 
-            TableQueryCreator tableQueryCreator = TableQueryCreator.GetOrCreateTableQueryCreator(tableType);
+            TableQueryCreator tableQueryCreator = TableQueryCreator.GetInstance(tableType);
 
             mr_Connection = connection;
             mr_PropertyQueryManager = tableQueryCreator.PropertyQueryCreator;
@@ -86,7 +86,6 @@ namespace Handy.Converters
                 }
 
                 int columnOrdinal = dataReader.GetOrdinal(currentColumnAttribute.Name);
-
                 object readerValue = dataReader.GetValue(columnOrdinal);
 
                 if (readerValue is DBNull)

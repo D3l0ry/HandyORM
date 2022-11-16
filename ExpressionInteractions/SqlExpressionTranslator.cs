@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
-using System.Text;
 
 using Handy.QueryInteractions;
 
@@ -153,7 +152,7 @@ namespace Handy.ExpressionInteractions
                 return constant;
             }
 
-            string field = TablePropertyQueryManager.ConvertFieldQuery(constant.Value);
+            string field = TablePropertyInformation.ConvertFieldQuery(constant.Value);
 
             QueryBuilder.Append(field);
 
@@ -166,12 +165,12 @@ namespace Handy.ExpressionInteractions
                 .PropertyQueryCreator
                 .GetProperty(member.Member as PropertyInfo);
 
-            TablePropertyQueryManager propertyQueryManager = QueryCreator.PropertyQueryCreator;
+            TablePropertyInformation propertyQueryManager = QueryCreator.PropertyQueryCreator;
 
             if (selectedProperty.Value.IsForeignColumn && selectedProperty.Value.ForeignTable != null)
             {
                 TableQueryCreator tableQueryCreator = TableQueryCreator
-                    .GetOrCreateTableQueryCreator(selectedProperty.Value.ForeignTable);
+                    .GetInstance(selectedProperty.Value.ForeignTable);
 
                 propertyQueryManager = tableQueryCreator.PropertyQueryCreator;
             }
@@ -185,7 +184,7 @@ namespace Handy.ExpressionInteractions
         {
             object field = Expression.Lambda(node).Compile().DynamicInvoke();
 
-            string fieldQuery = TablePropertyQueryManager.ConvertFieldQuery(field);
+            string fieldQuery = TablePropertyInformation.ConvertFieldQuery(field);
 
             return fieldQuery;
         }

@@ -12,40 +12,40 @@ namespace Handy
 {
     internal class TableQueryProvider<TElement> : ITableQueryProvider<TElement> where TElement : class, new()
     {
-        private readonly IExpressionTranslatorBuilder mr_ExpressionTranslatorBuilder;
-        private readonly DbConnection mr_SqlConnection;
+        private readonly ContextOptions mr_ContextOptions;
         private readonly TableQueryCreator mr_TableQueryCreator;
 
-        internal TableQueryProvider(IExpressionTranslatorBuilder expressionTranslatorBuilder,DbConnection sqlConnection)
+        internal TableQueryProvider(ContextOptions options)
         {
             Type tableType = typeof(TElement);
 
-            mr_ExpressionTranslatorBuilder = expressionTranslatorBuilder;
-            mr_SqlConnection = sqlConnection;
-            mr_TableQueryCreator = TableQueryCreator.GetOrCreateTableQueryCreator(tableType);
+            mr_ContextOptions = options;
+            mr_TableQueryCreator = TableQueryCreator.GetInstance(tableType);
         }
 
-        public DbConnection Connection => mr_SqlConnection;
+        public DbConnection Connection => mr_ContextOptions.Connection;
+
+        public IExpressionTranslatorBuilder ExpressionTranslatorBuilder => mr_ContextOptions.ExpressionTranslatorBuilder;
 
         public TableQueryCreator Creator => mr_TableQueryCreator;
 
-        internal IExpressionTranslatorBuilder ExpressionTranslatorBuilder => mr_ExpressionTranslatorBuilder;
-
-        ITableQueryable<TElement> ITableQueryProvider<TElement>.CreateQuery(Expression expression) => new TableManager<TElement>(this, expression,mr_ExpressionTranslatorBuilder, mr_SqlConnection);
+        ITableQueryable<TElement> ITableQueryProvider<TElement>.CreateQuery(Expression expression) => new TableManager<TElement>(this, expression);
 
         public IEnumerable<TElement> Execute(Expression expression)
         {
+            DbConnection connection = mr_ContextOptions.Connection;
             StringBuilder mainQuery = new StringBuilder(mr_TableQueryCreator.MainQuery);
+            IExpressionTranslatorBuilder translatorBuilder = mr_ContextOptions.ExpressionTranslatorBuilder;
 
-            string query = mr_ExpressionTranslatorBuilder
+            string query = translatorBuilder
                 .CreateInstance(mr_TableQueryCreator)
                 .ToString(expression);
 
             mainQuery.Append(query);
 
-            DbDataReader dataReader = mr_SqlConnection.ExecuteReader(mainQuery.ToString());
+            DbDataReader dataReader = connection.ExecuteReader(mainQuery.ToString());
 
-            IEnumerable<TElement> result = mr_SqlConnection
+            IEnumerable<TElement> result = connection
                 .GetTableConverter<TElement>()
                 .GetObjectsEnumerable(dataReader);
 
