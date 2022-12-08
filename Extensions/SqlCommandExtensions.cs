@@ -23,7 +23,7 @@ namespace Handy.Extensions
             for (int index = 0; index < methodParameters.Length; index++)
             {
                 ParameterInfo currentParameter = methodParameters[index];
-                ParameterAttribute parameterAttribute = methodParameters[index].GetCustomAttribute<ParameterAttribute>();
+                ParameterAttribute parameterAttribute = currentParameter.GetCustomAttribute<ParameterAttribute>();
 
                 string parameterName = parameterAttribute == null ? $"@{currentParameter.Name}" : $"@{parameterAttribute.Name}";
 
