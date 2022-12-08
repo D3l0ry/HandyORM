@@ -4,7 +4,7 @@ using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
 
-using Handy.QueryInteractions;
+using Handy.TableInteractions;
 
 namespace Handy.ExpressionInteractions
 {
@@ -21,7 +21,7 @@ namespace Handy.ExpressionInteractions
         {
             MethodInfo method = node.Method;
 
-            if (method.DeclaringType != typeof(DatabaseQueryable))
+            if (method.DeclaringType != typeof(Queryable))
             {
                 try
                 {
@@ -67,7 +67,7 @@ namespace Handy.ExpressionInteractions
                 {
                     if (constantEqual.Value == null)
                     {
-                        QueryBuilder.Append(" IS NOT ");
+                        QueryBuilder.Append(" IS ");
 
                         break;
                     }
@@ -147,12 +147,12 @@ namespace Handy.ExpressionInteractions
 
         protected override Expression VisitConstant(ConstantExpression constant)
         {
-            if (constant.Value is ITableQueryable)
+            if (constant.Value is IQueryable)
             {
                 return constant;
             }
 
-            string field = TablePropertyInformation.ConvertFieldQuery(constant.Value);
+            string field = TableProperties.ConvertFieldQuery(constant.Value);
 
             QueryBuilder.Append(field);
 
@@ -165,7 +165,7 @@ namespace Handy.ExpressionInteractions
                 .PropertyQueryCreator
                 .GetProperty(member.Member as PropertyInfo);
 
-            TablePropertyInformation propertyQueryManager = QueryCreator.PropertyQueryCreator;
+            TableProperties propertyQueryManager = QueryCreator.PropertyQueryCreator;
 
             if (selectedProperty.Value.IsForeignColumn && selectedProperty.Value.ForeignTable != null)
             {
@@ -184,7 +184,7 @@ namespace Handy.ExpressionInteractions
         {
             object field = Expression.Lambda(node).Compile().DynamicInvoke();
 
-            string fieldQuery = TablePropertyInformation.ConvertFieldQuery(field);
+            string fieldQuery = TableProperties.ConvertFieldQuery(field);
 
             return fieldQuery;
         }

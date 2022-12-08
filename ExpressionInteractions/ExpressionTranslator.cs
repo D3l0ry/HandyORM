@@ -1,17 +1,15 @@
 ﻿using System.Linq.Expressions;
 using System.Text;
 
-using Handy.QueryInteractions;
+using Handy.TableInteractions;
 
 namespace Handy.ExpressionInteractions
 {
     public abstract class ExpressionTranslator : ExpressionVisitor
     {
-        private readonly StringBuilder mr_TranslatedQuery;
+        private readonly StringBuilder _TranslatedQuery = new StringBuilder();
 
-        public ExpressionTranslator() => mr_TranslatedQuery = new StringBuilder();
-
-        protected StringBuilder QueryBuilder => mr_TranslatedQuery;
+        protected StringBuilder QueryBuilder => _TranslatedQuery;
 
         protected internal TableQueryCreator QueryCreator { get; internal set; }
 

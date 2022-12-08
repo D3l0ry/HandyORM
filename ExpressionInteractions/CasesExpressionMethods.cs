@@ -2,8 +2,6 @@
 using System.Linq.Expressions;
 using System.Text;
 
-using Handy;
-
 namespace Handy.ExpressionInteractions
 {
     internal static class CasesExpressionMethods

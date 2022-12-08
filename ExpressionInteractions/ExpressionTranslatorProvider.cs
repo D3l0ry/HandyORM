@@ -1,11 +1,11 @@
 ﻿using System;
 
 using Handy.Interfaces;
-using Handy.QueryInteractions;
+using Handy.TableInteractions;
 
 namespace Handy.ExpressionInteractions
 {
-    internal class ExpressionTranslatorProvider<Translator> : IExpressionTranslatorBuilder
+    internal class ExpressionTranslatorProvider<Translator> : IExpressionTranslatorProvider
         where Translator : ExpressionTranslator, new()
     {
         public ExpressionTranslator CreateInstance(TableQueryCreator tableQueryCreator)
