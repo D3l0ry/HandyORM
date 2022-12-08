@@ -4,20 +4,20 @@ using System.Data.Common;
 using System.Reflection;
 using System.Text;
 
-using Handy.QueryInteractions;
+using Handy.TableInteractions;
 
 namespace Handy
 {
     public class ForeignTable<Table> where Table : class, new()
     {
-        private static readonly Dictionary<Type, string> ms_ForeignTableQuery = new Dictionary<Type, string>();
+        private static readonly Dictionary<Type, string> _ForeignTableQuery = new Dictionary<Type, string>();
 
-        private readonly Type mr_TableType;
-        private readonly object mr_MainTable;
-        private readonly PropertyInfo mr_MainTableForeignKey;
-        private readonly DbConnection mr_SqlConnection;
+        private readonly Type _TableType;
+        private readonly object _MainTable;
+        private readonly PropertyInfo _MainTableForeignKey;
+        private readonly DbConnection _SqlConnection;
 
-        private Table m_Value;
+        private Table _Value;
 
         internal ForeignTable(object mainTable, PropertyInfo mainTableForeignKey, DbConnection connection)
         {
@@ -36,24 +36,24 @@ namespace Handy
                 throw new ArgumentNullException(nameof(connection));
             }
 
-            mr_TableType = typeof(Table);
-            mr_MainTable = mainTable;
-            mr_MainTableForeignKey = mainTableForeignKey;
-            mr_SqlConnection = connection;
+            _TableType = typeof(Table);
+            _MainTable = mainTable;
+            _MainTableForeignKey = mainTableForeignKey;
+            _SqlConnection = connection;
         }
 
         private string GetOrCreateForeignTableQuery()
         {
-            if (ms_ForeignTableQuery.TryGetValue(mr_TableType, out string foundForeingTableQuery))
+            if (_ForeignTableQuery.TryGetValue(_TableType, out string foundForeingTableQuery))
             {
                 return foundForeingTableQuery;
             }
 
-            TableQueryCreator selectedTableQueryCreator = TableQueryCreator.GetInstance(mr_TableType);
-            TablePropertyInformation selectedTablePropertyQueryManager = selectedTableQueryCreator.PropertyQueryCreator;
+            TableQueryCreator selectedTableQueryCreator = TableQueryCreator.GetInstance(_TableType);
+            TableProperties selectedTablePropertyQueryManager = selectedTableQueryCreator.PropertyQueryCreator;
             StringBuilder queryString = new StringBuilder(selectedTableQueryCreator.MainQuery);
 
-            if (!mr_TableType.IsArray)
+            if (!_TableType.IsArray)
             {
                 queryString.Insert(6, " TOP 1 ");
             }
@@ -67,7 +67,7 @@ namespace Handy
 
             string newForeingTableQuery = queryString.ToString();
 
-            ms_ForeignTableQuery.Add(mr_TableType, newForeingTableQuery);
+            _ForeignTableQuery.Add(_TableType, newForeingTableQuery);
 
             return newForeingTableQuery;
         }
@@ -76,7 +76,7 @@ namespace Handy
         {
             string selectedForeingTableQuery = GetOrCreateForeignTableQuery();
             StringBuilder stringBuilder = new StringBuilder(selectedForeingTableQuery);
-            string foreignKeyValue = TablePropertyInformation.ConvertFieldQuery(mr_MainTableForeignKey.GetValue(mr_MainTable));
+            string foreignKeyValue = TableProperties.ConvertFieldQuery(_MainTableForeignKey.GetValue(_MainTable));
 
             stringBuilder.Append(selectedForeingTableQuery);
             stringBuilder.Append(foreignKeyValue);
@@ -89,17 +89,17 @@ namespace Handy
         {
             get
             {
-                if (m_Value != null)
+                if (_Value != null)
                 {
-                    return m_Value;
+                    return _Value;
                 }
 
                 string newQuery = GetForeignTableQuery();
-                DbDataReader dataReader = mr_SqlConnection.ExecuteReader(newQuery);
+                DbDataReader dataReader = _SqlConnection.ExecuteReader(newQuery);
 
-                m_Value = mr_SqlConnection.ConvertReader<Table>(dataReader);
+                _Value = _SqlConnection.ConvertReader<Table>(dataReader);
 
-                return m_Value;
+                return _Value;
             }
         }
     }
