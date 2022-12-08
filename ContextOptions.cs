@@ -10,6 +10,6 @@ namespace Handy
 
         internal DbConnection Connection { get; set; }
 
-        internal IExpressionTranslatorBuilder ExpressionTranslatorBuilder { get; set; }
+        internal IExpressionTranslatorProvider ExpressionTranslatorBuilder { get; set; }
     }
 }

@@ -11,7 +11,7 @@ namespace Handy
     public abstract class DatabaseContext : IDisposable
     {
         private readonly ContextOptions mr_Options;
-        private readonly Dictionary<Type, ITableQueryable> mr_Tables;
+        private readonly Dictionary<Type, IQueryable> mr_Tables;
 
         protected DatabaseContext()
         {
@@ -20,7 +20,7 @@ namespace Handy
             OnConfigure(optionsBuilder);
 
             mr_Options = optionsBuilder.Build();
-            mr_Tables = new Dictionary<Type, ITableQueryable>();
+            mr_Tables = new Dictionary<Type, IQueryable>();
 
             mr_Options.Connection.ConnectionString = mr_Options.ConnectionString;
             mr_Options.Connection.Open();
@@ -34,7 +34,7 @@ namespace Handy
             OnConfigure(optionsBuilder);
 
             mr_Options = optionsBuilder.Build();
-            mr_Tables = new Dictionary<Type, ITableQueryable>();
+            mr_Tables = new Dictionary<Type, IQueryable>();
 
             mr_Options.Connection.ConnectionString = mr_Options.ConnectionString;
             mr_Options.Connection.Open();
@@ -67,7 +67,7 @@ namespace Handy
         {
             Type tableType = typeof(Table);
 
-            bool tryGet = mr_Tables.TryGetValue(tableType, out ITableQueryable selectedTable);
+            bool tryGet = mr_Tables.TryGetValue(tableType, out IQueryable selectedTable);
 
             if (tryGet)
             {

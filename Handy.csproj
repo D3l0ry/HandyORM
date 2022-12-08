@@ -8,16 +8,18 @@
     <Version>1.0.14.0</Version>
     <AssemblyVersion>1.0.13.0</AssemblyVersion>
     <FileVersion>1.0.13.0</FileVersion>
+    <ProduceReferenceAssembly>False</ProduceReferenceAssembly>
+    <Configurations>Debug;Release</Configurations>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
     <DefineConstants>DEBUG;TRACE</DefineConstants>
-    <Optimize>false</Optimize>
+    <Optimize>False</Optimize>
     <DebugType>portable</DebugType>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
-    <Optimize>true</Optimize>
+    <Optimize>True</Optimize>
     <GenerateSerializationAssemblies>Auto</GenerateSerializationAssemblies>
     <DocumentationFile>Handy.xml</DocumentationFile>
     <DebugType>none</DebugType>

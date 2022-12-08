@@ -42,7 +42,7 @@ namespace Handy
             return this;
         }
 
-        public ContextOptions Build()
+        internal ContextOptions Build()
         {
             if (string.IsNullOrWhiteSpace(m_ContextOptions.ConnectionString))
             {
