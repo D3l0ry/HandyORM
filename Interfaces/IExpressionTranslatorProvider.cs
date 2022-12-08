@@ -1,9 +1,9 @@
 ﻿using Handy.ExpressionInteractions;
-using Handy.QueryInteractions;
+using Handy.TableInteractions;
 
 namespace Handy.Interfaces
 {
-    internal interface IExpressionTranslatorBuilder
+    internal interface IExpressionTranslatorProvider
     {
         ExpressionTranslator CreateInstance(TableQueryCreator tableQueryCreator);
     }
