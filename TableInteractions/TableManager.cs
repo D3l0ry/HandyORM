@@ -6,15 +6,15 @@ using System.Linq;
 using System.Linq.Expressions;
 using System.Text;
 
-using Handy.Converters.Generic;
-using Handy.QueryInteractions;
+using Handy.Converter;
+using Handy.TableInteractions;
 
 namespace Handy
 {
-    public class TableManager<Table> : ITableQueryable<Table> where Table : class, new()
+    public class TableManager<Table> : IQueryable<Table>
     {
-        private readonly TableQueryProvider<Table> mr_TableQueryProvider;
-        private readonly Expression mr_Expression;
+        private readonly TableQueryProvider _TableQueryProvider;
+        private readonly Expression _Expression;
 
         internal TableManager(ContextOptions options)
         {
@@ -23,11 +23,11 @@ namespace Handy
                 throw new ArgumentNullException(nameof(options));
             }
 
-            mr_TableQueryProvider = new TableQueryProvider<Table>(options);
-            mr_Expression = Expression.Constant(this);
+            _TableQueryProvider = new TableQueryProvider(typeof(Table), options);
+            _Expression = Expression.Constant(this);
         }
 
-        internal TableManager(TableQueryProvider<Table> tableQueryProvider, Expression expression)
+        internal TableManager(TableQueryProvider tableQueryProvider, Expression expression)
         {
             if (tableQueryProvider == null)
             {
@@ -39,17 +39,26 @@ namespace Handy
                 throw new ArgumentNullException(nameof(expression));
             }
 
-            mr_TableQueryProvider = tableQueryProvider;
-            mr_Expression = expression;
+            _TableQueryProvider = tableQueryProvider;
+            _Expression = expression;
         }
 
-        Expression ITableQueryable.Expression => mr_Expression;
+        public Type ElementType => typeof(Table);
 
-        public ITableQueryProvider<Table> Provider => mr_TableQueryProvider;
+        public Expression Expression => _Expression;
+
+        IQueryProvider IQueryable.Provider => _TableQueryProvider;
+
+        private IEnumerable<Table> FromExpression()
+        {
+            string query = _TableQueryProvider.QueryFromExpression(_Expression);
+
+            return FromSql(query);
+        }
 
         public void Add(Table newElement)
         {
-            TablePropertyInformation propertyQueryCreator = mr_TableQueryProvider.Creator.PropertyQueryCreator;
+            TableProperties propertyQueryCreator = _TableQueryProvider.Creator.PropertyQueryCreator;
 
             StringBuilder stringBuilder = new StringBuilder("INSERT INTO ");
 
@@ -60,14 +69,14 @@ namespace Handy
             stringBuilder.Append(propertyQueryCreator.GetTablePropertiesValue(newElement));
             stringBuilder.Append(';');
 
-            mr_TableQueryProvider.Connection.ExecuteNonQuery(stringBuilder.ToString());
+            _TableQueryProvider.Connection.ExecuteNonQuery(stringBuilder.ToString());
         }
 
         public IdType AddAndOutputId<IdType>(Table newElement) where IdType : struct
         {
             Type idType = typeof(IdType);
 
-            TablePropertyInformation propertyQueryCreator = mr_TableQueryProvider.Creator.PropertyQueryCreator;
+            TableProperties propertyQueryCreator = _TableQueryProvider.Creator.PropertyQueryCreator;
 
             StringBuilder stringBuilder = new StringBuilder("INSERT INTO ");
 
@@ -76,30 +85,30 @@ namespace Handy
             stringBuilder.Append(propertyQueryCreator.GetTableProperties());
             stringBuilder.Append(" OUTPUT INSERTED.[");
             stringBuilder.Append(propertyQueryCreator.PrimaryKey.Value.Name);
-            stringBuilder.Append("]");
+            stringBuilder.Append(']');
             stringBuilder.Append(" VALUES ");
             stringBuilder.Append(propertyQueryCreator.GetTablePropertiesValue(newElement));
             stringBuilder.Append(';');
 
-            DbDataReader dataReader = mr_TableQueryProvider.Connection.ExecuteReader(stringBuilder.ToString());
+            DbDataReader dataReader = _TableQueryProvider.Connection.ExecuteReader(stringBuilder.ToString());
 
-            ConvertManager convertManager = new ConvertManager(idType);
+            DataConverter convertManager = new DataConverter(idType);
 
             return (IdType)convertManager.GetObject(dataReader);
         }
 
         public void AddRange(IEnumerable<Table> newElements)
         {
-            if (newElements is null || newElements.Count() == 0)
+            if (newElements == null || newElements.Count() == 0)
             {
                 throw new ArgumentNullException(nameof(newElements));
             }
 
-            TablePropertyInformation propertyQueryCreator = mr_TableQueryProvider.Creator.PropertyQueryCreator;
+            TableProperties propertyQueryCreator = _TableQueryProvider.Creator.PropertyQueryCreator;
 
-            DbTransaction transaction = mr_TableQueryProvider.Connection.BeginTransaction();
+            DbTransaction transaction = _TableQueryProvider.Connection.BeginTransaction();
 
-            DbCommand sqlCommand = mr_TableQueryProvider.Connection.CreateCommand();
+            DbCommand sqlCommand = _TableQueryProvider.Connection.CreateCommand();
             sqlCommand.Transaction = transaction;
 
             try
@@ -110,7 +119,16 @@ namespace Handy
                 stringBuilder.Append(' ');
                 stringBuilder.Append(propertyQueryCreator.GetTableProperties());
                 stringBuilder.Append(" VALUES ");
-                stringBuilder.Append(propertyQueryCreator.GetTablesPropertiesValue(newElements));
+
+                foreach (Table table in newElements)
+                {
+                    string newTablePropertiesValue = propertyQueryCreator.GetTablePropertiesValue(table);
+
+                    stringBuilder.Append(newTablePropertiesValue);
+                    stringBuilder.Append(',');
+                }
+
+                stringBuilder[stringBuilder.Length - 1] = ';';
 
                 sqlCommand.CommandText = stringBuilder.ToString();
                 sqlCommand.ExecuteNonQuery();
@@ -127,7 +145,7 @@ namespace Handy
 
         public void Update(Table element)
         {
-            TablePropertyInformation propertyQueryCreator = mr_TableQueryProvider.Creator.PropertyQueryCreator;
+            TableProperties propertyQueryCreator = _TableQueryProvider.Creator.PropertyQueryCreator;
 
             StringBuilder stringBuilder = new StringBuilder("UPDATE ");
 
@@ -135,59 +153,58 @@ namespace Handy
             stringBuilder.Append(" SET ");
             stringBuilder.Append(propertyQueryCreator.GetTablePropertiesNameAndValue(element));
             stringBuilder.Append(" WHERE ");
-            stringBuilder.Append(propertyQueryCreator.GetPropertyName(mr_TableQueryProvider.Creator.PropertyQueryCreator.PrimaryKey));
+            stringBuilder.Append(propertyQueryCreator.GetPropertyName(_TableQueryProvider.Creator.PropertyQueryCreator.PrimaryKey));
             stringBuilder.Append(" = ");
-            stringBuilder.Append(TablePropertyInformation.ConvertFieldQuery(mr_TableQueryProvider.Creator.PropertyQueryCreator.PrimaryKey.Key.GetValue(element)));
+            stringBuilder.Append(TableProperties.ConvertFieldQuery(_TableQueryProvider.Creator.PropertyQueryCreator.PrimaryKey.Key.GetValue(element)));
             stringBuilder.Append(';');
 
-            mr_TableQueryProvider.Connection.ExecuteNonQuery(stringBuilder.ToString());
+            _TableQueryProvider.Connection.ExecuteNonQuery(stringBuilder.ToString());
         }
 
         public void Delete(Table element)
         {
-            TablePropertyInformation propertyQueryCreator = mr_TableQueryProvider.Creator.PropertyQueryCreator;
+            TableProperties propertyQueryCreator = _TableQueryProvider.Creator.PropertyQueryCreator;
 
             StringBuilder stringBuilder = new StringBuilder("DELETE FROM ");
 
             stringBuilder.Append(propertyQueryCreator.GetTableName());
             stringBuilder.Append(" WHERE ");
-            stringBuilder.Append(propertyQueryCreator.GetPropertyName(mr_TableQueryProvider.Creator.PropertyQueryCreator.PrimaryKey));
+            stringBuilder.Append(propertyQueryCreator.GetPropertyName(_TableQueryProvider.Creator.PropertyQueryCreator.PrimaryKey));
             stringBuilder.Append(" = ");
-            stringBuilder.Append(TablePropertyInformation.ConvertFieldQuery(mr_TableQueryProvider.Creator.PropertyQueryCreator.PrimaryKey.Key.GetValue(element)));
+            stringBuilder.Append(TableProperties.ConvertFieldQuery(_TableQueryProvider.Creator.PropertyQueryCreator.PrimaryKey.Key.GetValue(element)));
             stringBuilder.Append(';');
 
-            mr_TableQueryProvider.Connection.ExecuteNonQuery(stringBuilder.ToString());
+            _TableQueryProvider.Connection.ExecuteNonQuery(stringBuilder.ToString());
         }
 
         public void Delete(Expression<Func<Table, bool>> expression)
         {
             StringBuilder stringBuilder = new StringBuilder($"DELETE FROM ");
 
-            string tableName = mr_TableQueryProvider.Creator.PropertyQueryCreator.GetTableName();
+            string tableName = _TableQueryProvider.Creator.PropertyQueryCreator.GetTableName();
 
-            string expressionTranslator = mr_TableQueryProvider.ExpressionTranslatorBuilder
-                .CreateInstance(mr_TableQueryProvider.Creator)
+            string expressionTranslator = _TableQueryProvider.ExpressionTranslatorBuilder
+                .CreateInstance(_TableQueryProvider.Creator)
                 .ToString(expression);
 
             stringBuilder.Append(tableName);
             stringBuilder.Append(" WHERE ");
             stringBuilder.Append(expressionTranslator);
 
-            mr_TableQueryProvider.Connection.ExecuteNonQuery(stringBuilder.ToString());
+            _TableQueryProvider.Connection.ExecuteNonQuery(stringBuilder.ToString());
         }
 
         public void DeleteRange(IEnumerable<Table> removedElements)
         {
-            if (removedElements is null || removedElements.Count() == 0)
+            if (removedElements == null || removedElements.Count() == 0)
             {
                 throw new ArgumentNullException(nameof(removedElements));
             }
 
-            TablePropertyInformation propertyQueryCreator = mr_TableQueryProvider.Creator.PropertyQueryCreator;
+            TableProperties propertyQueryCreator = _TableQueryProvider.Creator.PropertyQueryCreator;
+            DbTransaction transaction = _TableQueryProvider.Connection.BeginTransaction();
 
-            DbTransaction transaction = mr_TableQueryProvider.Connection.BeginTransaction();
-
-            DbCommand sqlCommand = mr_TableQueryProvider.Connection.CreateCommand();
+            DbCommand sqlCommand = _TableQueryProvider.Connection.CreateCommand();
             sqlCommand.Transaction = transaction;
 
             try
@@ -198,9 +215,9 @@ namespace Handy
 
                     stringBuilder.Append(propertyQueryCreator.GetTableName());
                     stringBuilder.Append(" WHERE ");
-                    stringBuilder.Append(propertyQueryCreator.GetPropertyName(mr_TableQueryProvider.Creator.PropertyQueryCreator.PrimaryKey));
+                    stringBuilder.Append(propertyQueryCreator.GetPropertyName(_TableQueryProvider.Creator.PropertyQueryCreator.PrimaryKey));
                     stringBuilder.Append(" = ");
-                    stringBuilder.Append(TablePropertyInformation.ConvertFieldQuery(mr_TableQueryProvider.Creator.PropertyQueryCreator.PrimaryKey.Key.GetValue(currentElement)));
+                    stringBuilder.Append(TableProperties.ConvertFieldQuery(_TableQueryProvider.Creator.PropertyQueryCreator.PrimaryKey.Key.GetValue(currentElement)));
                     stringBuilder.Append(';');
 
                     sqlCommand.CommandText = stringBuilder.ToString();
@@ -220,28 +237,26 @@ namespace Handy
 
         public void DeleteAll()
         {
-            TablePropertyInformation propertyQueryCreator = mr_TableQueryProvider.Creator.PropertyQueryCreator;
+            TableProperties propertyQueryCreator = _TableQueryProvider.Creator.PropertyQueryCreator;
 
             string createElementQuery = $"DELETE FROM {propertyQueryCreator.GetTableName()};";
 
-            mr_TableQueryProvider.Connection.ExecuteNonQuery(createElementQuery);
+            _TableQueryProvider.Connection.ExecuteNonQuery(createElementQuery);
         }
 
         public IEnumerable<Table> FromSql(string query)
         {
-            DbConnection connection = mr_TableQueryProvider.Connection;
-
-            TableConvertManager<Table> tableConvertManager = connection.GetTableConverter<Table>();
-
+            DbConnection connection = _TableQueryProvider.Connection;
+            TableConverter tableConvertManager = connection.GetTableConverter<Table>();
             DbDataReader dataReader = connection.ExecuteReader(query);
 
-            IEnumerable<Table> value = tableConvertManager.GetObjectsEnumerable(dataReader);
+            IEnumerable<Table> value = (IEnumerable<Table>)tableConvertManager.GetObjects(dataReader);
 
             return value;
         }
 
-        public IEnumerator<Table> GetEnumerator() => mr_TableQueryProvider.Execute(mr_Expression).GetEnumerator();
+        public IEnumerator<Table> GetEnumerator() => FromExpression().GetEnumerator();
 
-        IEnumerator IEnumerable.GetEnumerator() => mr_TableQueryProvider.Execute(mr_Expression).GetEnumerator();
+        IEnumerator IEnumerable.GetEnumerator() => FromExpression().GetEnumerator();
     }
 }
