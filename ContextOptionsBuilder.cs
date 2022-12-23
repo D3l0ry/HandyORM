@@ -7,7 +7,7 @@ namespace Handy
 {
     public class ContextOptionsBuilder
     {
-        protected readonly ContextOptions m_ContextOptions;
+        private readonly ContextOptions m_ContextOptions;
 
         public ContextOptionsBuilder() => m_ContextOptions = new ContextOptions();
 

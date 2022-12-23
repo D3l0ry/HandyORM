@@ -4,12 +4,12 @@ using Handy.Interfaces;
 
 namespace Handy
 {
-    public class ContextOptions
+    internal class ContextOptions
     {
-        internal string ConnectionString { get; set; }
+        public string ConnectionString { get; set; }
 
-        internal DbConnection Connection { get; set; }
+        public DbConnection Connection { get; set; }
 
-        internal IExpressionTranslatorProvider ExpressionTranslatorBuilder { get; set; }
+        public IExpressionTranslatorProvider ExpressionTranslatorBuilder { get; set; }
     }
 }

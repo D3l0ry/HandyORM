@@ -4,6 +4,7 @@ using System.Linq;
 using System.Linq.Expressions;
 using System.Text;
 
+using Handy.Converter;
 using Handy.Interfaces;
 using Handy.TableInteractions;
 
@@ -13,11 +14,13 @@ namespace Handy
     {
         private readonly ContextOptions _ContextOptions;
         private readonly TableQueryCreator _TableQueryCreator;
+        private readonly TableConverter _TableConverter;
 
         internal TableQueryProvider(Type tableType, ContextOptions options)
         {
             _ContextOptions = options;
             _TableQueryCreator = TableQueryCreator.GetInstance(tableType);
+            _TableConverter = new TableConverter(tableType, _TableQueryCreator.Properties, options.Connection);
         }
 
         public DbConnection Connection => _ContextOptions.Connection;
@@ -25,6 +28,8 @@ namespace Handy
         public IExpressionTranslatorProvider ExpressionTranslatorBuilder => _ContextOptions.ExpressionTranslatorBuilder;
 
         public TableQueryCreator Creator => _TableQueryCreator;
+
+        public TableConverter Converter => _TableConverter;
 
         internal string QueryFromExpression(Expression expression)
         {
@@ -52,7 +57,7 @@ namespace Handy
             string query = QueryFromExpression(expression);
             DbDataReader dataReader = connection.ExecuteReader(query);
 
-            TResult result = connection.ConvertReader<TResult>(dataReader);
+            TResult result = connection.ConvertReader<TResult>(dataReader, _TableConverter);
 
             return result;
         }

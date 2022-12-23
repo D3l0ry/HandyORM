@@ -27,8 +27,26 @@ namespace Handy.Converter
             TableQueryCreator tableQueryCreator = TableQueryCreator.GetInstance(tableType);
 
             _CurrentContextConnection = connection;
-            _TableProperties = tableQueryCreator.PropertyQueryCreator;
+            _TableProperties = tableQueryCreator.Properties;
         }
+
+        internal TableConverter(Type tableType, TableProperties tableProperties, DbConnection connection) : base(tableType)
+        {
+            if (tableProperties == null)
+            {
+                throw new ArgumentNullException(nameof(tableProperties));
+            }
+
+            if (connection == null)
+            {
+                throw new ArgumentNullException(nameof(connection));
+            }
+
+            _CurrentContextConnection = connection;
+            _TableProperties = tableProperties;
+        }
+
+        protected override Func<DbDataReader, object> GetDefinedFunctionGetterObject(DbDataReader dataReader) => GetInternalObject;
 
         /// <summary>
         /// Получение объектов из внешней таблицы

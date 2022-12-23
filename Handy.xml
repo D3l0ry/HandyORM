@@ -94,6 +94,13 @@
             <param name="dataReader"></param>
             <returns></returns>
         </member>
+        <member name="M:Handy.DataConverter.GetInternalSimpleObject(System.Data.Common.DbDataReader)">
+            <summary>
+            Конвертирует поле из строки SqlDataReader в объект выбранного типа (Тип должен быть такого же типа, который получается из SqlDataReader)
+            </summary>
+            <param name="dataReader"></param>
+            <returns></returns>
+        </member>
         <member name="M:Handy.DataConverter.GetObjects(System.Data.Common.DbDataReader)">
             <summary>
             Получение массива объектов из таблицы

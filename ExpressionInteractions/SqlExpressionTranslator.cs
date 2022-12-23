@@ -127,8 +127,7 @@ namespace Handy.ExpressionInteractions
             switch (member.Expression.NodeType)
             {
                 case ExpressionType.Parameter:
-                GetProperty(member);
-
+                AppendPropertyName(member);
                 return member;
 
                 case ExpressionType.New:
@@ -159,23 +158,13 @@ namespace Handy.ExpressionInteractions
             return constant;
         }
 
-        internal void GetProperty(MemberExpression member)
+        internal void AppendPropertyName(MemberExpression member)
         {
-            KeyValuePair<PropertyInfo, ColumnAttribute> selectedProperty = QueryCreator
-                .PropertyQueryCreator
+            KeyValuePair<PropertyInfo, ColumnAttribute> selectedProperty = QueryCreator.Properties
                 .GetProperty(member.Member as PropertyInfo);
 
-            TableProperties propertyQueryManager = QueryCreator.PropertyQueryCreator;
-
-            if (selectedProperty.Value.IsForeignColumn && selectedProperty.Value.ForeignTable != null)
-            {
-                TableQueryCreator tableQueryCreator = TableQueryCreator
-                    .GetInstance(selectedProperty.Value.ForeignTable);
-
-                propertyQueryManager = tableQueryCreator.PropertyQueryCreator;
-            }
-
-            string tablePropertName = propertyQueryManager.GetPropertyName(selectedProperty);
+            string tablePropertName = QueryCreator.Properties
+                .GetPropertyName(selectedProperty);
 
             QueryBuilder.Append(tablePropertName);
         }

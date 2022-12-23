@@ -46,8 +46,7 @@ namespace Handy.TableInteractions
         private IEnumerable<KeyValuePair<PropertyInfo, ColumnAttribute>> GetProperties()
         {
             IEnumerable<PropertyInfo> properties = _TableType.GetProperties(BindingFlags.Public | BindingFlags.Instance)
-                .Where(currentProperty => currentProperty.CustomAttributes
-                    .Any(currentPropertyAttribute => currentPropertyAttribute.AttributeType == typeof(ColumnAttribute)));
+                .Where(currentProperty => currentProperty.IsDefined(typeof(ColumnAttribute)));
 
             foreach (PropertyInfo currentProperty in properties)
             {
@@ -109,6 +108,19 @@ namespace Handy.TableInteractions
 
         public string GetPropertyName(in KeyValuePair<PropertyInfo, ColumnAttribute> property)
         {
+            ColumnAttribute propertyColumn = property.Value;
+
+            if (propertyColumn.IsForeignColumn && propertyColumn.ForeignTable != null)
+            {
+                TableQueryCreator tableQueryCreator = TableQueryCreator
+                    .GetInstance(propertyColumn.ForeignTable);
+
+                KeyValuePair<PropertyInfo, ColumnAttribute> foreignProperty = tableQueryCreator.Properties
+                    .GetProperty(propertyColumn.Name);
+
+                return tableQueryCreator.Properties.GetPropertyName(foreignProperty);
+            }
+
             StringBuilder propertyName = new StringBuilder(GetTableName());
 
             propertyName.Append($".[{property.Value.Name}]");

@@ -66,7 +66,6 @@ namespace Handy
         protected TableManager<Table> GetTable<Table>() where Table : class, new()
         {
             Type tableType = typeof(Table);
-
             bool tryGet = mr_Tables.TryGetValue(tableType, out IQueryable selectedTable);
 
             if (tryGet)

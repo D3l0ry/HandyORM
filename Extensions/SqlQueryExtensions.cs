@@ -79,8 +79,7 @@ namespace Handy
             dataCommand.AddArguments(arguments, stackFrame, callingMethod);
 
             DbDataReader dataReader = dataCommand.ExecuteReader();
-
-            T result = sqlConnection.ConvertReader<T>(dataReader);
+            T result = sqlConnection.ConvertReader<T>(dataReader, null);
 
             dataCommand.Dispose();
             dataReader.Close();

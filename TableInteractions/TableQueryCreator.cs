@@ -37,7 +37,7 @@ namespace Handy.TableInteractions
 
         public TableAttribute Attribute => _TableAttribute;
 
-        public TableProperties PropertyQueryCreator => _PropertyInformation;
+        public TableProperties Properties => _PropertyInformation;
 
         public string MainQuery
         {
@@ -74,10 +74,7 @@ namespace Handy.TableInteractions
             }
 
             StringBuilder newLeftJoinStringBuilder = new StringBuilder("LEFT JOIN ");
-
-            string tableName = foreignTableQueryCreator._PropertyInformation
-                .GetTableName();
-
+            string tableName = foreignTableQueryCreator._PropertyInformation.GetTableName();
             string foreignTableKeyName;
 
             if (string.IsNullOrWhiteSpace(currentPropertyColumn.ForeignTableKeyName))
@@ -87,8 +84,7 @@ namespace Handy.TableInteractions
             }
             else
             {
-                KeyValuePair<PropertyInfo, ColumnAttribute> selectedForeignTableProperty =
-                    foreignTableQueryCreator._PropertyInformation
+                KeyValuePair<PropertyInfo, ColumnAttribute> selectedForeignTableProperty = foreignTableQueryCreator._PropertyInformation
                     .GetProperty(currentPropertyColumn.ForeignTableKeyName);
 
                 foreignTableKeyName = foreignTableQueryCreator._PropertyInformation

@@ -15,7 +15,6 @@ namespace Handy
     internal class DataConverter
     {
         private readonly Type _ObjectType;
-        private readonly PropertyInfo[] _ObjectProperties;
 
         /// <summary>
         /// Инициализатор
@@ -30,13 +29,22 @@ namespace Handy
             }
 
             _ObjectType = type;
-            _ObjectProperties = type.GetProperties();
         }
 
         /// <summary>
         /// Тип объекта
         /// </summary>
         protected Type ObjectType => _ObjectType;
+
+        protected virtual Func<DbDataReader, object> GetDefinedFunctionGetterObject(DbDataReader dataReader)
+        {
+            if (dataReader.FieldCount == 1)
+            {
+                return GetInternalSimpleObject;
+            }
+
+            return GetInternalObject;
+        }
 
         /// <summary>
         /// Конвертирует поля из строки SqlDataReader в объекты выбранного типа
@@ -45,20 +53,10 @@ namespace Handy
         /// <returns></returns>
         protected virtual object GetInternalObject(DbDataReader dataReader)
         {
-            if (dataReader.FieldCount == 1)
-            {
-                object value = dataReader.GetValue(0);
-                Type valueType = value.GetType();
-
-                if (valueType == _ObjectType)
-                {
-                    return value;
-                }
-            }
-
             object table = Activator.CreateInstance(_ObjectType);
+            PropertyInfo[] properties = _ObjectType.GetProperties();
 
-            foreach (PropertyInfo currentProperty in _ObjectProperties)
+            foreach (PropertyInfo currentProperty in properties)
             {
                 currentProperty.SetDataReaderValue(table, dataReader);
             }
@@ -67,21 +65,36 @@ namespace Handy
         }
 
         /// <summary>
+        /// Конвертирует поле из строки SqlDataReader в объект выбранного типа (Тип должен быть такого же типа, который получается из SqlDataReader)
+        /// </summary>
+        /// <param name="dataReader"></param>
+        /// <returns></returns>
+        protected virtual object GetInternalSimpleObject(DbDataReader dataReader) => dataReader.GetValue(0);
+
+        /// <summary>
         /// Получение массива объектов из таблицы
         /// </summary>
         /// <param name="dataReader"></param>
         /// <returns></returns>
         public virtual IEnumerable GetObjects(DbDataReader dataReader)
         {
+            Func<DbDataReader, object> function;
             IList list = (IList)Activator
                 .CreateInstance(typeof(List<>)
                 .MakeGenericType(_ObjectType));
 
             using (dataReader)
             {
+                if (!dataReader.HasRows)
+                {
+                    return list;
+                }
+
+                function = GetDefinedFunctionGetterObject(dataReader);
+
                 while (dataReader.Read())
                 {
-                    object newObject = GetInternalObject(dataReader);
+                    object newObject = function(dataReader);
 
                     list.Add(newObject);
                 }
@@ -98,16 +111,25 @@ namespace Handy
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public virtual object GetObject(DbDataReader dataReader)
         {
+            Func<DbDataReader, object> function;
+
             using (dataReader)
             {
-                if (dataReader.Read())
+                if (!dataReader.HasRows)
                 {
-                    return GetInternalObject(dataReader);
+                    if (_ObjectType.IsValueType)
+                    {
+                        return Activator.CreateInstance(_ObjectType);
+                    }
+
+                    return null;
                 }
 
-                if (_ObjectType.IsValueType)
+                function = GetDefinedFunctionGetterObject(dataReader);
+
+                if (dataReader.Read())
                 {
-                    return Activator.CreateInstance(_ObjectType);
+                    return function(dataReader);
                 }
             }
 

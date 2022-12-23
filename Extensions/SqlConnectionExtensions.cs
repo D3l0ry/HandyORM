@@ -9,7 +9,7 @@ namespace Handy
 {
     internal static class SqlConnectionExtensions
     {
-        public static TResult ConvertReader<TResult>(this DbConnection sqlConnection, DbDataReader dataReader)
+        public static TResult ConvertReader<TResult>(this DbConnection sqlConnection, DbDataReader dataReader, TableConverter tableConverter)
         {
             if (dataReader == null)
             {
@@ -18,13 +18,20 @@ namespace Handy
 
             Type resultType = typeof(TResult);
             Type elementType = resultType.GetElementType() ?? resultType;
-            TableAttribute tableAttribute = elementType.GetCustomAttribute<TableAttribute>();
+            bool isTable = elementType.IsDefined(typeof(TableAttribute));
 
             DataConverter convertManager;
 
-            if (tableAttribute != null)
+            if (isTable)
             {
-                convertManager = sqlConnection.GetTableConverter(elementType);
+                if (tableConverter == null)
+                {
+                    convertManager = sqlConnection.GetTableConverter(elementType);
+                }
+                else
+                {
+                    convertManager = tableConverter;
+                }
             }
             else
             {
@@ -66,8 +73,6 @@ namespace Handy
 
             return sqlCommand.ExecuteReader();
         }
-
-        public static TableConverter GetTableConverter<Table>(this DbConnection connection) => connection.GetTableConverter(typeof(Table));
 
         public static TableConverter GetTableConverter(this DbConnection connection, Type tableType)
         {
