@@ -1,9 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Data.Common;
+using System.Linq;
 using System.Reflection;
 using System.Text;
 
+using Handy.Converter;
 using Handy.TableInteractions;
 
 namespace Handy
@@ -15,21 +17,21 @@ namespace Handy
         private readonly object _MainTable;
         private readonly PropertyInfo _MainTableForeignKey;
         private readonly DbConnection _SqlConnection;
-        private Table _Value;
+        private Table[] _Value;
 
         internal ForeignTable(object mainTable, PropertyInfo mainTableForeignKey, DbConnection connection)
         {
-            if (mainTable is null)
+            if (mainTable == null)
             {
                 throw new ArgumentNullException(nameof(mainTable));
             }
 
-            if (mainTableForeignKey is null)
+            if (mainTableForeignKey == null)
             {
                 throw new ArgumentNullException(nameof(mainTableForeignKey));
             }
 
-            if (connection is null)
+            if (connection == null)
             {
                 throw new ArgumentNullException(nameof(connection));
             }
@@ -87,7 +89,7 @@ namespace Handy
             return stringBuilder.ToString();
         }
 
-        public Table Value
+        public IEnumerable<Table> Value
         {
             get
             {
@@ -95,8 +97,9 @@ namespace Handy
                 {
                     string newQuery = GetForeignTableQuery();
                     DbDataReader dataReader = _SqlConnection.ExecuteReader(newQuery);
+                    TableConverter<Table> converter = new TableConverter<Table>(_SqlConnection);
 
-                    _Value = _SqlConnection.ConvertReader<Table>(dataReader, null);
+                    _Value = converter.Query(dataReader).ToArray();
                 }
 
                 return _Value;

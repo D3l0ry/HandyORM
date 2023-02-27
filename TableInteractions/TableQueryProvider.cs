@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Data.Common;
 using System.Linq;
 using System.Linq.Expressions;
@@ -10,17 +11,18 @@ using Handy.TableInteractions;
 
 namespace Handy
 {
-    internal class TableQueryProvider : IQueryProvider
+    internal class TableQueryProvider<T> : IDataQueryProvider<T> where T : class, new()
     {
         private readonly ContextOptions _ContextOptions;
         private readonly TableQueryCreator _TableQueryCreator;
-        private readonly TableConverter _TableConverter;
+        private readonly TableConverter<T> _TableConverter;
 
-        internal TableQueryProvider(Type tableType, ContextOptions options)
+        internal TableQueryProvider(ContextOptions options)
         {
+            Type type = typeof(T);
             _ContextOptions = options;
-            _TableQueryCreator = TableQueryCreator.GetInstance(tableType);
-            _TableConverter = new TableConverter(tableType, _TableQueryCreator.Properties, options.Connection);
+            _TableQueryCreator = TableQueryCreator.GetInstance(type);
+            _TableConverter = new TableConverter<T>(_TableQueryCreator.Properties, options.Connection);
         }
 
         public DbConnection Connection => _ContextOptions.Connection;
@@ -29,37 +31,28 @@ namespace Handy
 
         public TableQueryCreator Creator => _TableQueryCreator;
 
-        public TableConverter Converter => _TableConverter;
+        public TableConverter<T> Converter => _TableConverter;
 
-        internal string QueryFromExpression(Expression expression)
+        public string QueryFromExpression(Expression expression)
         {
-            StringBuilder mainQuery = new StringBuilder(_TableQueryCreator.MainQuery);
             IExpressionTranslatorProvider translatorBuilder = _ContextOptions.ExpressionTranslatorBuilder;
 
             string query = translatorBuilder
                 .CreateInstance(_TableQueryCreator)
                 .ToString(expression);
 
-            mainQuery.Append(query);
-
-            return mainQuery.ToString();
+            return query;
         }
 
-        IQueryable IQueryProvider.CreateQuery(Expression expression) => throw new NotImplementedException();
+        public IDataQueryable<T> CreateQuery(Expression expression) => new Table<T>(this, expression);
 
-        public IQueryable<TElement> CreateQuery<TElement>(Expression expression) => new TableManager<TElement>(this, expression);
-
-        object IQueryProvider.Execute(Expression expression) => throw new NotImplementedException();
-
-        TResult IQueryProvider.Execute<TResult>(Expression expression)
+        public IEnumerable<T> Execute(Expression expression)
         {
             DbConnection connection = _ContextOptions.Connection;
             string query = QueryFromExpression(expression);
             DbDataReader dataReader = connection.ExecuteReader(query);
 
-            TResult result = connection.ConvertReader<TResult>(dataReader, _TableConverter);
-
-            return result;
+            return _TableConverter.Query(dataReader);
         }
     }
 }

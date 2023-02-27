@@ -1,10 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Data;
 using System.Data.Common;
 using System.Diagnostics;
 using System.Reflection;
 
+using Handy.Converter;
 using Handy.Extensions;
+using Handy.Interfaces;
 
 namespace Handy
 {
@@ -23,14 +26,14 @@ namespace Handy
             }
 
             DbDataReader dataReader = connection.ExecuteReader(query);
-            DataConverter convertManager = new DataConverter(typeof(T));
+            DataConverter<T> convertManager = new DataConverter<T>();
 
-            IEnumerable<T> objectsEnumerable = (IEnumerable<T>)convertManager.GetObjects(dataReader);
+            IEnumerable<T> objectsEnumerable = convertManager.GetObjects(dataReader);
 
             return objectsEnumerable;
         }
 
-        public static void ExecuteNonQuery(this DbConnection sqlConnection, string query)
+        public static int ExecuteNonQuery(this DbConnection sqlConnection, string query)
         {
             if (sqlConnection == null)
             {
@@ -46,7 +49,7 @@ namespace Handy
             {
                 sqlCommand.CommandText = query;
 
-                sqlCommand.ExecuteNonQuery();
+                return sqlCommand.ExecuteNonQuery();
             }
         }
 
@@ -60,7 +63,7 @@ namespace Handy
         /// <param name="arguments">Аргументы, которые передаются в процедуру. Аргументы должны идти в порядке параметров метода</param>
         /// <returns></returns>
         /// <exception cref="ArgumentNullException"></exception>
-        public static T ExecuteProcedure<T>(this DbConnection sqlConnection, string procedureName, params object[] arguments)
+        public static IEnumerable<T> ExecuteProcedure<T>(this DbConnection sqlConnection, string procedureName, params object[] arguments) where T: new()
         {
             if (sqlConnection == null)
             {
@@ -72,19 +75,30 @@ namespace Handy
                 throw new ArgumentNullException(nameof(procedureName));
             }
 
-            DbCommand dataCommand = sqlConnection.CreateProcedureCommand(procedureName);
+            Type type = typeof(T);
+            bool isTable = type.IsDefined(typeof(TableAttribute));
+
+            DbCommand dataCommand = sqlConnection.CreateCommand();
             StackFrame stackFrame = new StackFrame(2);
             MethodBase callingMethod = stackFrame.GetMethod();
 
+            dataCommand.CommandType = CommandType.StoredProcedure;
+            dataCommand.CommandText = procedureName;
             dataCommand.AddArguments(arguments, stackFrame, callingMethod);
 
             DbDataReader dataReader = dataCommand.ExecuteReader();
-            T result = sqlConnection.ConvertReader<T>(dataReader, null);
+            IDataConverter<T> converter;
 
-            dataCommand.Dispose();
-            dataReader.Close();
+            if(isTable)
+            {
+                converter = new TableConverter<T>(sqlConnection);
+            }
+            else
+            {
+                converter = new DataConverter<T>();
+            }
 
-            return result;
+            return converter.Query(dataReader);
         }
     }
 }

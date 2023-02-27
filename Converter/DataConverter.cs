@@ -1,34 +1,32 @@
 ﻿using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Data.Common;
+using System.Linq;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 
 using Handy.Extensions;
+using Handy.Interfaces;
 
 namespace Handy
 {
     /// <summary>
     /// Класс для конвертации объектов из SqlDataReader
     /// </summary>
-    internal class DataConverter
+    public class DataConverter<T> : IDataConverter<T> where T : new()
     {
         private readonly Type _ObjectType;
+        private readonly PropertyInfo[] _TypeProperties;
 
         /// <summary>
         /// Инициализатор
         /// </summary>
         /// <param name="type">Тип объекта, к которому нужно привести объекты из SqlDataReader</param>
         /// <exception cref="ArgumentNullException"></exception>
-        public DataConverter(Type type)
+        public DataConverter()
         {
-            if (type == null)
-            {
-                throw new ArgumentNullException(nameof(type));
-            }
-
-            _ObjectType = type;
+            _ObjectType = typeof(T);
+            _TypeProperties = _ObjectType.GetProperties();
         }
 
         /// <summary>
@@ -36,9 +34,14 @@ namespace Handy
         /// </summary>
         protected Type ObjectType => _ObjectType;
 
-        protected virtual Func<DbDataReader, object> GetDefinedFunctionGetterObject(DbDataReader dataReader)
+        /// <summary>
+        /// Свойства объекта
+        /// </summary>
+        protected PropertyInfo[] Properties => _TypeProperties;
+
+        protected virtual Func<DbDataReader, T> GetDefinedFunctionGetterObject(DbDataReader dataReader)
         {
-            if (dataReader.FieldCount == 1)
+            if(dataReader.FieldCount == 1)
             {
                 return GetInternalSimpleObject;
             }
@@ -51,12 +54,11 @@ namespace Handy
         /// </summary>
         /// <param name="dataReader"></param>
         /// <returns></returns>
-        protected virtual object GetInternalObject(DbDataReader dataReader)
+        protected virtual T GetInternalObject(DbDataReader dataReader)
         {
-            object table = Activator.CreateInstance(_ObjectType);
-            PropertyInfo[] properties = _ObjectType.GetProperties();
+            T table = new T();
 
-            foreach (PropertyInfo currentProperty in properties)
+            foreach(PropertyInfo currentProperty in _TypeProperties)
             {
                 currentProperty.SetDataReaderValue(table, dataReader);
             }
@@ -69,39 +71,46 @@ namespace Handy
         /// </summary>
         /// <param name="dataReader"></param>
         /// <returns></returns>
-        protected virtual object GetInternalSimpleObject(DbDataReader dataReader) => dataReader.GetValue(0);
+        protected virtual T GetInternalSimpleObject(DbDataReader dataReader)
+        {
+            object value = dataReader.GetValue(0);
+
+            if(value is DBNull)
+            {
+                return default;
+            }
+
+            return (T)dataReader.GetValue(0);
+        }
+
+        public virtual IEnumerable<T> Query(DbDataReader dataReader)
+        {
+            Func<DbDataReader, T> function;
+
+            using(dataReader)
+            {
+                if(!dataReader.HasRows)
+                {
+                    yield break;
+                }
+
+                function = GetDefinedFunctionGetterObject(dataReader);
+
+                while(dataReader.Read())
+                {
+                    T newObject = function(dataReader);
+
+                    yield return newObject;
+                }
+            }
+        }
 
         /// <summary>
         /// Получение массива объектов из таблицы
         /// </summary>
         /// <param name="dataReader"></param>
         /// <returns></returns>
-        public virtual IEnumerable GetObjects(DbDataReader dataReader)
-        {
-            Func<DbDataReader, object> function;
-            IList list = (IList)Activator
-                .CreateInstance(typeof(List<>)
-                .MakeGenericType(_ObjectType));
-
-            using (dataReader)
-            {
-                if (!dataReader.HasRows)
-                {
-                    return list;
-                }
-
-                function = GetDefinedFunctionGetterObject(dataReader);
-
-                while (dataReader.Read())
-                {
-                    object newObject = function(dataReader);
-
-                    list.Add(newObject);
-                }
-            }
-
-            return list;
-        }
+        public virtual T[] GetObjects(DbDataReader dataReader) => Query(dataReader).ToArray();
 
         /// <summary>
         /// Получение объекта из таблицы
@@ -109,31 +118,6 @@ namespace Handy
         /// <param name="dataReader"></param>
         /// <returns></returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public virtual object GetObject(DbDataReader dataReader)
-        {
-            Func<DbDataReader, object> function;
-
-            using (dataReader)
-            {
-                if (!dataReader.HasRows)
-                {
-                    if (_ObjectType.IsValueType)
-                    {
-                        return Activator.CreateInstance(_ObjectType);
-                    }
-
-                    return null;
-                }
-
-                function = GetDefinedFunctionGetterObject(dataReader);
-
-                if (dataReader.Read())
-                {
-                    return function(dataReader);
-                }
-            }
-
-            return null;
-        }
+        public virtual T GetObject(DbDataReader dataReader) => Query(dataReader).FirstOrDefault();
     }
 }

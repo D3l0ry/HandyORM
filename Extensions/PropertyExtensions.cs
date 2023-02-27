@@ -7,23 +7,29 @@ namespace Handy.Extensions
 {
     internal static class PropertyExtensions
     {
-        private static void ThrowExceptionIfPropertyIsNotNullable(this PropertyInfo property, object readerValue)
+        /// <summary>
+        /// Выдает исключение, если приссваимое значение равно Null, но свойство не принимает значения типа Null
+        /// </summary>
+        /// <param name="property"></param>
+        /// <param name="readerValue"></param>
+        /// <exception cref="InvalidCastException"></exception>
+        private static object GetValueOrThrowExceptionIfPropertyIsNotNullableType(this PropertyInfo property, object readerValue)
         {
             Type propertyType = property.PropertyType;
 
             if (!(readerValue is DBNull))
             {
-                return;
+                return readerValue;
             }
 
             if (!propertyType.IsValueType)
             {
-                return;
+                return null;
             }
 
             if (propertyType.IsGenericType && propertyType.GetGenericTypeDefinition() == typeof(Nullable<>))
             {
-                return;
+                return null;
             }
 
             throw new InvalidCastException($"Поле {property.Name} вернуло NULL, тогда как тип не принимает такие значения");
@@ -32,9 +38,9 @@ namespace Handy.Extensions
         private static void SetValue(this PropertyInfo property, object obj, string columnName, DbDataReader dataReader)
         {
             object readerValue = dataReader[columnName];
+            object value = property.GetValueOrThrowExceptionIfPropertyIsNotNullableType(readerValue);
 
-            property.ThrowExceptionIfPropertyIsNotNullable(readerValue);
-            property.SetValue(obj, readerValue);
+            property.SetValue(obj, value);
         }
 
         public static void SetDataReaderValue(this PropertyInfo property, object obj, DbDataReader dataReader) =>

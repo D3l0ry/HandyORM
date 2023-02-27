@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.Data.Common;
 using System.Linq;
 
+using Handy.Interfaces;
+
 namespace Handy
 {
     /// <summary>
@@ -11,7 +13,7 @@ namespace Handy
     public abstract class DatabaseContext : IDisposable
     {
         private readonly ContextOptions mr_Options;
-        private readonly Dictionary<Type, IQueryable> mr_Tables;
+        private readonly Dictionary<Type, IDataQueryable> mr_Tables;
 
         protected DatabaseContext()
         {
@@ -20,7 +22,7 @@ namespace Handy
             OnConfigure(optionsBuilder);
 
             mr_Options = optionsBuilder.Build();
-            mr_Tables = new Dictionary<Type, IQueryable>();
+            mr_Tables = new Dictionary<Type, IDataQueryable>();
 
             mr_Options.Connection.ConnectionString = mr_Options.ConnectionString;
             mr_Options.Connection.Open();
@@ -34,7 +36,7 @@ namespace Handy
             OnConfigure(optionsBuilder);
 
             mr_Options = optionsBuilder.Build();
-            mr_Tables = new Dictionary<Type, IQueryable>();
+            mr_Tables = new Dictionary<Type, IDataQueryable>();
 
             mr_Options.Connection.ConnectionString = mr_Options.ConnectionString;
             mr_Options.Connection.Open();
@@ -56,24 +58,24 @@ namespace Handy
         /// <param name="procedure">Имя хранимой процедуры</param>
         /// <param name="arguments">Аргументы, которые передаются в процедуру. Аргументы должны идти в порядке параметров метода</param>
         /// <returns></returns>
-        protected virtual T ExecuteProcedure<T>(string procedure, params object[] arguments) => mr_Options.Connection.ExecuteProcedure<T>(procedure, arguments);
+        protected virtual IEnumerable<T> ExecuteProcedure<T>(string procedure, params object[] arguments) where T : new() => mr_Options.Connection.ExecuteProcedure<T>(procedure, arguments);
 
         /// <summary>
         /// Получает объект TableManager с указанным типом, который определяет модель таблицы из базы данных
         /// </summary>
         /// <typeparam name="Table">Тип, определяющий модель таблицы из базы данных</typeparam>
         /// <returns></returns>
-        protected TableManager<Table> GetTable<Table>() where Table : class, new()
+        protected Table<Table> GetTable<Table>() where Table : class, new()
         {
             Type tableType = typeof(Table);
-            bool tryGet = mr_Tables.TryGetValue(tableType, out IQueryable selectedTable);
+            bool tryGet = mr_Tables.TryGetValue(tableType, out IDataQueryable selectedTable);
 
             if (tryGet)
             {
-                return (TableManager<Table>)selectedTable;
+                return (Table<Table>)selectedTable;
             }
 
-            TableManager<Table> newTable = new TableManager<Table>(mr_Options);
+            Table<Table> newTable = new Table<Table>(mr_Options);
 
             mr_Tables.Add(tableType, newTable);
 

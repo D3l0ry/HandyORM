@@ -7,27 +7,28 @@ using System.Linq.Expressions;
 using System.Text;
 
 using Handy.Converter;
+using Handy.Interfaces;
 using Handy.TableInteractions;
 
 namespace Handy
 {
-    public class TableManager<Table> : IQueryable<Table>
+    public class Table<T> : IDataQueryable<T> where T : class, new()
     {
-        private readonly TableQueryProvider _TableQueryProvider;
+        private readonly TableQueryProvider<T> _TableQueryProvider;
         private readonly Expression _Expression;
 
-        internal TableManager(ContextOptions options)
+        internal Table(ContextOptions options)
         {
             if (options == null)
             {
                 throw new ArgumentNullException(nameof(options));
             }
 
-            _TableQueryProvider = new TableQueryProvider(typeof(Table), options);
+            _TableQueryProvider = new TableQueryProvider<T>(options);
             _Expression = Expression.Constant(this);
         }
 
-        internal TableManager(TableQueryProvider tableQueryProvider, Expression expression)
+        internal Table(TableQueryProvider<T> tableQueryProvider, Expression expression)
         {
             if (tableQueryProvider == null)
             {
@@ -43,20 +44,13 @@ namespace Handy
             _Expression = expression;
         }
 
-        public Type ElementType => typeof(Table);
+        public Type ElementType => typeof(T);
 
         public Expression Expression => _Expression;
 
-        IQueryProvider IQueryable.Provider => _TableQueryProvider;
+        IDataQueryProvider<T> IDataQueryable<T>.Provider => _TableQueryProvider;
 
-        private IEnumerable<Table> FromExpression()
-        {
-            string query = _TableQueryProvider.QueryFromExpression(_Expression);
-
-            return FromSql(query);
-        }
-
-        public void Add(Table newElement)
+        public void Add(T newElement)
         {
             TableProperties propertyQueryCreator = _TableQueryProvider.Creator.Properties;
 
@@ -72,10 +66,8 @@ namespace Handy
             _TableQueryProvider.Connection.ExecuteNonQuery(stringBuilder.ToString());
         }
 
-        public IdType AddAndOutputId<IdType>(Table newElement) where IdType : struct
+        public IdType AddAndOutputId<IdType>(T newElement) where IdType : struct
         {
-            Type idType = typeof(IdType);
-
             TableProperties propertyQueryCreator = _TableQueryProvider.Creator.Properties;
 
             StringBuilder stringBuilder = new StringBuilder("INSERT INTO ");
@@ -92,12 +84,12 @@ namespace Handy
 
             DbDataReader dataReader = _TableQueryProvider.Connection.ExecuteReader(stringBuilder.ToString());
 
-            DataConverter convertManager = new DataConverter(idType);
+            DataConverter<IdType> convertManager = new DataConverter<IdType>();
 
-            return (IdType)convertManager.GetObject(dataReader);
+            return convertManager.GetObject(dataReader);
         }
 
-        public void AddRange(IEnumerable<Table> newElements)
+        public void AddRange(IEnumerable<T> newElements)
         {
             if (newElements == null || newElements.Count() == 0)
             {
@@ -120,7 +112,7 @@ namespace Handy
                 stringBuilder.Append(propertyQueryCreator.GetTableProperties());
                 stringBuilder.Append(" VALUES ");
 
-                foreach (Table table in newElements)
+                foreach (T table in newElements)
                 {
                     string newTablePropertiesValue = propertyQueryCreator.GetTablePropertiesValue(table);
 
@@ -143,7 +135,7 @@ namespace Handy
             }
         }
 
-        public void Update(Table element)
+        public void Update(T element)
         {
             TableProperties propertyQueryCreator = _TableQueryProvider.Creator.Properties;
 
@@ -161,7 +153,7 @@ namespace Handy
             _TableQueryProvider.Connection.ExecuteNonQuery(stringBuilder.ToString());
         }
 
-        public void Delete(Table element)
+        public void Delete(T element)
         {
             TableProperties propertyQueryCreator = _TableQueryProvider.Creator.Properties;
 
@@ -177,7 +169,7 @@ namespace Handy
             _TableQueryProvider.Connection.ExecuteNonQuery(stringBuilder.ToString());
         }
 
-        public void Delete(Expression<Func<Table, bool>> expression)
+        public void Delete(Expression<Func<T, bool>> expression)
         {
             StringBuilder stringBuilder = new StringBuilder($"DELETE FROM ");
 
@@ -194,7 +186,7 @@ namespace Handy
             _TableQueryProvider.Connection.ExecuteNonQuery(stringBuilder.ToString());
         }
 
-        public void DeleteRange(IEnumerable<Table> removedElements)
+        public void DeleteRange(IEnumerable<T> removedElements)
         {
             if (removedElements == null || removedElements.Count() == 0)
             {
@@ -209,7 +201,7 @@ namespace Handy
 
             try
             {
-                foreach (Table currentElement in removedElements)
+                foreach (T currentElement in removedElements)
                 {
                     StringBuilder stringBuilder = new StringBuilder("DELETE FROM ");
 
@@ -243,19 +235,8 @@ namespace Handy
             _TableQueryProvider.Connection.ExecuteNonQuery(createElementQuery);
         }
 
-        public IEnumerable<Table> FromSql(string query)
-        {
-            DbConnection connection = _TableQueryProvider.Connection;
-            TableConverter tableConvertManager = _TableQueryProvider.Converter;
-            DbDataReader dataReader = connection.ExecuteReader(query);
+        public IEnumerator<T> GetEnumerator() => _TableQueryProvider.Execute(_Expression).GetEnumerator();
 
-            IEnumerable<Table> value = (IEnumerable<Table>)tableConvertManager.GetObjects(dataReader);
-
-            return value;
-        }
-
-        public IEnumerator<Table> GetEnumerator() => FromExpression().GetEnumerator();
-
-        IEnumerator IEnumerable.GetEnumerator() => FromExpression().GetEnumerator();
+        IEnumerator IEnumerable.GetEnumerator() => _TableQueryProvider.Execute(_Expression).GetEnumerator();
     }
 }

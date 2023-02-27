@@ -70,64 +70,69 @@
             Имя схемы таблицы в базе данных
             </summary>
         </member>
-        <member name="T:Handy.DataConverter">
+        <member name="T:Handy.DataConverter`1">
             <summary>
             Класс для конвертации объектов из SqlDataReader
             </summary>
         </member>
-        <member name="M:Handy.DataConverter.#ctor(System.Type)">
+        <member name="M:Handy.DataConverter`1.#ctor">
             <summary>
             Инициализатор
             </summary>
             <param name="type">Тип объекта, к которому нужно привести объекты из SqlDataReader</param>
             <exception cref="T:System.ArgumentNullException"></exception>
         </member>
-        <member name="P:Handy.DataConverter.ObjectType">
+        <member name="P:Handy.DataConverter`1.ObjectType">
             <summary>
             Тип объекта
             </summary>
         </member>
-        <member name="M:Handy.DataConverter.GetInternalObject(System.Data.Common.DbDataReader)">
+        <member name="P:Handy.DataConverter`1.Properties">
+            <summary>
+            Свойства объекта
+            </summary>
+        </member>
+        <member name="M:Handy.DataConverter`1.GetInternalObject(System.Data.Common.DbDataReader)">
             <summary>
             Конвертирует поля из строки SqlDataReader в объекты выбранного типа
             </summary>
             <param name="dataReader"></param>
             <returns></returns>
         </member>
-        <member name="M:Handy.DataConverter.GetInternalSimpleObject(System.Data.Common.DbDataReader)">
+        <member name="M:Handy.DataConverter`1.GetInternalSimpleObject(System.Data.Common.DbDataReader)">
             <summary>
             Конвертирует поле из строки SqlDataReader в объект выбранного типа (Тип должен быть такого же типа, который получается из SqlDataReader)
             </summary>
             <param name="dataReader"></param>
             <returns></returns>
         </member>
-        <member name="M:Handy.DataConverter.GetObjects(System.Data.Common.DbDataReader)">
+        <member name="M:Handy.DataConverter`1.GetObjects(System.Data.Common.DbDataReader)">
             <summary>
             Получение массива объектов из таблицы
             </summary>
             <param name="dataReader"></param>
             <returns></returns>
         </member>
-        <member name="M:Handy.DataConverter.GetObject(System.Data.Common.DbDataReader)">
+        <member name="M:Handy.DataConverter`1.GetObject(System.Data.Common.DbDataReader)">
             <summary>
             Получение объекта из таблицы
             </summary>
             <param name="dataReader"></param>
             <returns></returns>
         </member>
-        <member name="T:Handy.Converter.TableConverter">
+        <member name="T:Handy.Converter.TableConverter`1">
             <summary>
             Класс для конвертации объектов из SqlDataReader в тип определяющий таблицу базы данных
             </summary>
         </member>
-        <member name="M:Handy.Converter.TableConverter.SetCreatedInstanceForeignTable(System.Object,System.Collections.Generic.KeyValuePair{System.Reflection.PropertyInfo,Handy.ColumnAttribute}@)">
+        <member name="M:Handy.Converter.TableConverter`1.SetCreatedInstanceForeignTable(System.Object,System.Collections.Generic.KeyValuePair{System.Reflection.PropertyInfo,Handy.ColumnAttribute}@)">
             <summary>
             Получение объектов из внешней таблицы
             </summary>
             <param name="mainTable"></param>
             <param name="property"></param>
         </member>
-        <member name="M:Handy.Converter.TableConverter.GetInternalObject(System.Data.Common.DbDataReader)">
+        <member name="M:Handy.Converter.TableConverter`1.GetInternalObject(System.Data.Common.DbDataReader)">
             <summary>
             Получение объекта из таблицы
             </summary>
@@ -161,6 +166,14 @@
             </summary>
             <typeparam name="Table">Тип, определяющий модель таблицы из базы данных</typeparam>
             <returns></returns>
+        </member>
+        <member name="M:Handy.Extensions.PropertyExtensions.GetValueOrThrowExceptionIfPropertyIsNotNullableType(System.Reflection.PropertyInfo,System.Object)">
+            <summary>
+            Выдает исключение, если приссваимое значение равно Null, но свойство не принимает значения типа Null
+            </summary>
+            <param name="property"></param>
+            <param name="readerValue"></param>
+            <exception cref="T:System.InvalidCastException"></exception>
         </member>
         <member name="M:Handy.SqlQueryExtensions.ExecuteProcedure``1(System.Data.Common.DbConnection,System.String,System.Object[])">
             <summary>

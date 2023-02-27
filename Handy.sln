@@ -5,6 +5,8 @@ VisualStudioVersion = 17.4.33110.190
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Handy", "Handy.csproj", "{551FE6AE-9537-467D-A7A5-DA7E7E98F84E}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Handy.MsSql", "..\Handy.MsSql\Handy.MsSql.csproj", "{8BDD8E40-E8ED-4801-9C3E-B3AC6E1D4DBD}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -15,6 +17,10 @@ Global
 		{551FE6AE-9537-467D-A7A5-DA7E7E98F84E}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{551FE6AE-9537-467D-A7A5-DA7E7E98F84E}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{551FE6AE-9537-467D-A7A5-DA7E7E98F84E}.Release|Any CPU.Build.0 = Release|Any CPU
+		{8BDD8E40-E8ED-4801-9C3E-B3AC6E1D4DBD}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{8BDD8E40-E8ED-4801-9C3E-B3AC6E1D4DBD}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{8BDD8E40-E8ED-4801-9C3E-B3AC6E1D4DBD}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{8BDD8E40-E8ED-4801-9C3E-B3AC6E1D4DBD}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

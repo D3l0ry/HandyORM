@@ -1,10 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Data.Common;
+using System.Linq;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 
 using Handy.Extensions;
+using Handy.Interfaces;
 using Handy.TableInteractions;
 
 namespace Handy.Converter
@@ -12,32 +14,32 @@ namespace Handy.Converter
     /// <summary>
     /// Класс для конвертации объектов из SqlDataReader в тип определяющий таблицу базы данных
     /// </summary>
-    internal class TableConverter : DataConverter
+    internal sealed class TableConverter<T> : IDataConverter<T> where T : new()
     {
         private readonly DbConnection _CurrentContextConnection;
         private readonly TableProperties _TableProperties;
 
-        internal TableConverter(Type tableType, DbConnection connection) : base(tableType)
+        internal TableConverter(DbConnection connection)
         {
-            if (connection == null)
+            if(connection == null)
             {
                 throw new ArgumentNullException(nameof(connection));
             }
 
-            TableQueryCreator tableQueryCreator = TableQueryCreator.GetInstance(tableType);
+            TableQueryCreator tableQueryCreator = TableQueryCreator.GetInstance(typeof(T));
 
             _CurrentContextConnection = connection;
             _TableProperties = tableQueryCreator.Properties;
         }
 
-        internal TableConverter(Type tableType, TableProperties tableProperties, DbConnection connection) : base(tableType)
+        internal TableConverter(TableProperties tableProperties, DbConnection connection)
         {
-            if (tableProperties == null)
+            if(tableProperties == null)
             {
                 throw new ArgumentNullException(nameof(tableProperties));
             }
 
-            if (connection == null)
+            if(connection == null)
             {
                 throw new ArgumentNullException(nameof(connection));
             }
@@ -45,8 +47,6 @@ namespace Handy.Converter
             _CurrentContextConnection = connection;
             _TableProperties = tableProperties;
         }
-
-        protected override Func<DbDataReader, object> GetDefinedFunctionGetterObject(DbDataReader dataReader) => GetInternalObject;
 
         /// <summary>
         /// Получение объектов из внешней таблицы
@@ -61,12 +61,12 @@ namespace Handy.Converter
             Type selectedPropertyType = selectedProperty.PropertyType;
             ColumnAttribute selectedPropertyColumn = property.Value;
 
-            if (string.IsNullOrWhiteSpace(selectedPropertyColumn.ForeignKeyName))
+            if(string.IsNullOrWhiteSpace(selectedPropertyColumn.ForeignKeyName))
             {
                 throw new NullReferenceException($"Не указан внешний ключ для {selectedProperty.Name}");
             }
 
-            if (!selectedPropertyType.IsGenericType || selectedPropertyType.GetGenericTypeDefinition() != foreignTableType)
+            if(!selectedPropertyType.IsGenericType || selectedPropertyType.GetGenericTypeDefinition() != foreignTableType)
             {
                 throw new ArgumentException($"Свойство не является типом {foreignTableType.Name}");
             }
@@ -90,23 +90,45 @@ namespace Handy.Converter
         /// <param name="dataReader"></param>
         /// <returns></returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        protected override object GetInternalObject(DbDataReader dataReader)
+        private T GetInternalObject(DbDataReader dataReader)
         {
-            object table = Activator.CreateInstance(ObjectType);
+            T newObject = new T();
 
-            foreach (KeyValuePair<PropertyInfo, ColumnAttribute> currentProperty in _TableProperties)
+            foreach(KeyValuePair<PropertyInfo, ColumnAttribute> currentProperty in _TableProperties)
             {
-                if (currentProperty.Value.IsTable)
+                if(currentProperty.Value.IsTable)
                 {
-                    SetCreatedInstanceForeignTable(table, currentProperty);
+                    SetCreatedInstanceForeignTable(newObject, currentProperty);
 
                     continue;
                 }
 
-                currentProperty.SetDataReaderValue(table, dataReader);
+                currentProperty.SetDataReaderValue(newObject, dataReader);
             }
 
-            return table;
+            return newObject;
         }
+
+        public IEnumerable<T> Query(DbDataReader dataReader)
+        {
+            using(dataReader)
+            {
+                if(!dataReader.HasRows)
+                {
+                    yield break;
+                }
+
+                while(dataReader.Read())
+                {
+                    T newObject = GetInternalObject(dataReader);
+
+                    yield return newObject;
+                }
+            }
+        }
+
+        public T[] GetObjects(DbDataReader dataReader) => Query(dataReader).ToArray();
+
+        public T GetObject(DbDataReader dataReader) => Query(dataReader).FirstOrDefault();
     }
 }

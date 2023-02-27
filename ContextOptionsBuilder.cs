@@ -23,19 +23,27 @@ namespace Handy
             return this;
         }
 
-        public ContextOptionsBuilder UseConnection(DbConnection connection)
+        public ContextOptionsBuilder UseConnection<T>() where T : DbConnection, new()
         {
-            if (connection == null)
-            {
-                throw new ArgumentNullException(nameof(connection));
-            }
-
-            m_ContextOptions.Connection = connection;
+            m_ContextOptions.Connection = new T();
 
             return this;
         }
 
-        public ContextOptionsBuilder UseExpression<Translator>() where Translator : ExpressionTranslator, new()
+        public ContextOptionsBuilder UseConnection<T>(string connection) where T : DbConnection, new()
+        {
+            if(string.IsNullOrWhiteSpace(connection))
+            {
+                throw new ArgumentNullException(nameof(connection));
+            }
+
+            m_ContextOptions.Connection = new T();
+            m_ContextOptions.ConnectionString = connection;
+
+            return this;
+        }
+
+        public ContextOptionsBuilder UseExpression<Translator>() where Translator : ExpressionTranslator
         {
             m_ContextOptions.ExpressionTranslatorBuilder = new ExpressionTranslatorProvider<Translator>();
 
@@ -46,17 +54,17 @@ namespace Handy
         {
             if (string.IsNullOrWhiteSpace(m_ContextOptions.ConnectionString))
             {
-                throw new ArgumentNullException("ConnectionString");
+                throw new ArgumentNullException(nameof(m_ContextOptions.ConnectionString));
             }
 
             if (m_ContextOptions.Connection == null)
             {
-                throw new ArgumentNullException("Connection");
+                throw new ArgumentNullException(nameof(m_ContextOptions.Connection));
             }
 
             if (m_ContextOptions.ExpressionTranslatorBuilder == null)
             {
-                UseExpression<SqlExpressionTranslator>();
+                throw new ArgumentNullException(nameof(m_ContextOptions.ExpressionTranslatorBuilder));
             }
 
             return m_ContextOptions;

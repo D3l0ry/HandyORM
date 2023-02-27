@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Reflection;
 
 using Handy.Interfaces;
 using Handy.TableInteractions;
@@ -6,17 +7,13 @@ using Handy.TableInteractions;
 namespace Handy.ExpressionInteractions
 {
     internal class ExpressionTranslatorProvider<Translator> : IExpressionTranslatorProvider
-        where Translator : ExpressionTranslator, new()
+        where Translator : ExpressionTranslator
     {
         public ExpressionTranslator CreateInstance(TableQueryCreator tableQueryCreator)
         {
-            if (tableQueryCreator == null)
-            {
-                throw new ArgumentNullException(nameof(tableQueryCreator));
-            }
-
-            ExpressionTranslator newExpressionTranslator = Activator.CreateInstance<Translator>();
-            newExpressionTranslator.QueryCreator = tableQueryCreator;
+            ExpressionTranslator newExpressionTranslator = (ExpressionTranslator)typeof(Translator)
+                .GetConstructor(BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public, null, new Type[] { typeof(TableQueryCreator) }, null)
+                .Invoke(new[] { tableQueryCreator });
 
             return newExpressionTranslator;
         }
