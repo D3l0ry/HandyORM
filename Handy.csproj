@@ -5,9 +5,9 @@
     <Authors>Daniil Shantarin</Authors>
     <Company />
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
-    <Version>1.0.17.1</Version>
-    <AssemblyVersion>1.0.17.1</AssemblyVersion>
-    <FileVersion>1.0.17.1</FileVersion>
+    <Version>1.0.17.2</Version>
+    <AssemblyVersion>1.0.17.2</AssemblyVersion>
+    <FileVersion>1.0.17.2</FileVersion>
     <ProduceReferenceAssembly>False</ProduceReferenceAssembly>
     <Configurations>Debug;Release</Configurations>
     <PackageId>HandyORM</PackageId>
