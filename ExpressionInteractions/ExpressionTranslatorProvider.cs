@@ -12,7 +12,10 @@ namespace Handy.ExpressionInteractions
         public ExpressionTranslator CreateInstance(TableQueryCreator tableQueryCreator)
         {
             ExpressionTranslator newExpressionTranslator = (ExpressionTranslator)typeof(Translator)
-                .GetConstructor(BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public, null, new Type[] { typeof(TableQueryCreator) }, null)
+                .GetConstructor(BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public, null, new Type[]
+                    {
+                        typeof(TableQueryCreator)
+                    }, null)
                 .Invoke(new[] { tableQueryCreator });
 
             return newExpressionTranslator;

@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Data.Common;
-using System.Linq;
 
 using Handy.Interfaces;
 
@@ -58,7 +57,11 @@ namespace Handy
         /// <param name="procedure">Имя хранимой процедуры</param>
         /// <param name="arguments">Аргументы, которые передаются в процедуру. Аргументы должны идти в порядке параметров метода</param>
         /// <returns></returns>
-        protected virtual IEnumerable<T> ExecuteProcedure<T>(string procedure, params object[] arguments) where T : new() => mr_Options.Connection.ExecuteProcedure<T>(procedure, arguments);
+        protected virtual IEnumerable<T> ExecuteProcedure<T>(string procedure, params object[] arguments) where T : new() =>
+            mr_Options.Connection.ExecuteProcedure<T>(procedure, arguments);
+
+        protected virtual IEnumerable<T> ExecuteProcedure<T>(string procedure, params DbParameter[] arguments) where T : new() =>
+            mr_Options.Connection.ExecuteProcedure<T>(procedure, arguments);
 
         /// <summary>
         /// Получает объект TableManager с указанным типом, который определяет модель таблицы из базы данных

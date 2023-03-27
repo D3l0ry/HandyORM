@@ -41,7 +41,7 @@ namespace Handy
 
         protected virtual Func<DbDataReader, T> GetDefinedFunctionGetterObject(DbDataReader dataReader)
         {
-            if(dataReader.FieldCount == 1)
+            if (dataReader.FieldCount == 1)
             {
                 return GetInternalSimpleObject;
             }
@@ -58,7 +58,7 @@ namespace Handy
         {
             T table = new T();
 
-            foreach(PropertyInfo currentProperty in _TypeProperties)
+            foreach (PropertyInfo currentProperty in _TypeProperties)
             {
                 currentProperty.SetDataReaderValue(table, dataReader);
             }
@@ -75,7 +75,7 @@ namespace Handy
         {
             object value = dataReader.GetValue(0);
 
-            if(value is DBNull)
+            if (value is DBNull)
             {
                 return default;
             }
@@ -87,16 +87,16 @@ namespace Handy
         {
             Func<DbDataReader, T> function;
 
-            using(dataReader)
+            using (dataReader)
             {
-                if(!dataReader.HasRows)
+                if (!dataReader.HasRows)
                 {
                     yield break;
                 }
 
                 function = GetDefinedFunctionGetterObject(dataReader);
 
-                while(dataReader.Read())
+                while (dataReader.Read())
                 {
                     T newObject = function(dataReader);
 
