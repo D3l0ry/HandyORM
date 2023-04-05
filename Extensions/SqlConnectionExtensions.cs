@@ -1,18 +1,15 @@
 ﻿using System;
 using System.Data.Common;
-using System.Reflection;
-
-using Handy.Converter;
 
 namespace Handy
 {
     internal static class SqlConnectionExtensions
     {
-        public static DbDataReader ExecuteReader(this DbConnection sqlConnection, string query)
+        public static DbCommand CreateCommand(this DbConnection connection, string query)
         {
-            if (sqlConnection == null)
+            if (connection == null)
             {
-                throw new ArgumentNullException(nameof(sqlConnection));
+                throw new ArgumentNullException(nameof(connection));
             }
 
             if (string.IsNullOrWhiteSpace(query))
@@ -20,10 +17,17 @@ namespace Handy
                 throw new ArgumentNullException(nameof(query));
             }
 
-            DbCommand sqlCommand = sqlConnection.CreateCommand();
+            DbCommand sqlCommand = connection.CreateCommand();
             sqlCommand.CommandText = query;
 
-            return sqlCommand.ExecuteReader();
+            return sqlCommand;
+        }
+
+        public static DbDataReader ExecuteReader(this DbConnection connection, string query)
+        {
+            DbCommand command = connection.CreateCommand(query);
+
+            return command.ExecuteReader();
         }
     }
 }
