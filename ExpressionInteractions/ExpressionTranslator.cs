@@ -11,7 +11,7 @@ namespace Handy.ExpressionInteractions
         private readonly TableQueryCreator _QueryCreator;
         private readonly StringBuilder _TranslatedQuery;
 
-        protected ExpressionTranslator(TableQueryCreator queryCreator) 
+        protected ExpressionTranslator(TableQueryCreator queryCreator)
         {
             if (queryCreator == null)
             {

@@ -49,17 +49,6 @@ namespace Handy
         /// <param name="options"></param>
         protected abstract void OnConfigure(ContextOptionsBuilder options);
 
-        /// <summary>
-        /// Метод для вызова процедур базы данных.
-        /// Если процедура имеет принимаемые аргументы, то ExecuteProcedure должен обязательно вызываться в методе
-        /// </summary>
-        /// <typeparam name="T"></typeparam>
-        /// <param name="procedure">Имя хранимой процедуры</param>
-        /// <param name="arguments">Аргументы, которые передаются в процедуру. Аргументы должны идти в порядке параметров метода</param>
-        /// <returns></returns>
-        protected virtual IEnumerable<T> ExecuteProcedure<T>(string procedure, params object[] arguments) where T : new() =>
-            mr_Options.Connection.ExecuteProcedure<T>(procedure, arguments);
-
         protected virtual IEnumerable<T> ExecuteProcedure<T>(string procedure, params DbParameter[] arguments) where T : new() =>
             mr_Options.Connection.ExecuteProcedure<T>(procedure, arguments);
 

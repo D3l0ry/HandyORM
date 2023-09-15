@@ -32,7 +32,7 @@ namespace Handy
 
         public ContextOptionsBuilder UseConnection<T>(string connection) where T : DbConnection, new()
         {
-            if(string.IsNullOrWhiteSpace(connection))
+            if (string.IsNullOrWhiteSpace(connection))
             {
                 throw new ArgumentNullException(nameof(connection));
             }
