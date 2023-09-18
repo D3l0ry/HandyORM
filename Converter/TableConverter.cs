@@ -4,7 +4,7 @@ using System.Data.Common;
 using System.Linq;
 using System.Reflection;
 using System.Runtime.CompilerServices;
-
+using Handy.Attributes;
 using Handy.Extensions;
 using Handy.Interfaces;
 using Handy.TableInteractions;
@@ -16,8 +16,8 @@ namespace Handy.Converter
     /// </summary>
     internal sealed class TableConverter<T> : IDataConverter<T> where T : new()
     {
-        private readonly DbConnection _CurrentContextConnection;
-        private readonly TableProperties _TableProperties;
+        private readonly DbConnection _currentContextConnection;
+        private readonly TableProperties _tableProperties;
 
         internal TableConverter(DbConnection connection)
         {
@@ -28,8 +28,8 @@ namespace Handy.Converter
 
             TableQueryCreator tableQueryCreator = TableQueryCreator.GetInstance(typeof(T));
 
-            _CurrentContextConnection = connection;
-            _TableProperties = tableQueryCreator.Properties;
+            _currentContextConnection = connection;
+            _tableProperties = tableQueryCreator.Properties;
         }
 
         internal TableConverter(TableProperties tableProperties, DbConnection connection)
@@ -44,8 +44,8 @@ namespace Handy.Converter
                 throw new ArgumentNullException(nameof(connection));
             }
 
-            _CurrentContextConnection = connection;
-            _TableProperties = tableProperties;
+            _currentContextConnection = connection;
+            _tableProperties = tableProperties;
         }
 
         /// <summary>
@@ -54,14 +54,12 @@ namespace Handy.Converter
         /// <param name="mainTable"></param>
         /// <param name="property"></param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private void SetCreatedInstanceForeignTable(object mainTable, in KeyValuePair<PropertyInfo, ColumnAttribute> property)
+        private void SetCreatedInstanceForeignTable(object mainTable, PropertyInfo selectedProperty, ForeignTableAttribute foreignTable)
         {
             Type foreignTableType = typeof(ForeignTable<>);
-            PropertyInfo selectedProperty = property.Key;
             Type selectedPropertyType = selectedProperty.PropertyType;
-            ColumnAttribute selectedPropertyColumn = property.Value;
 
-            if (string.IsNullOrWhiteSpace(selectedPropertyColumn.ForeignKeyName))
+            if (string.IsNullOrWhiteSpace(foreignTable.ThisKey))
             {
                 throw new NullReferenceException($"Не указан внешний ключ для {selectedProperty.Name}");
             }
@@ -71,15 +69,15 @@ namespace Handy.Converter
                 throw new ArgumentException($"Свойство не является типом {foreignTableType.Name}");
             }
 
-            PropertyInfo mainTableForeignKeyProperty = _TableProperties
-                .GetProperty(selectedPropertyColumn.ForeignKeyName).Key;
+            PropertyInfo mainTableForeignKeyProperty = _tableProperties
+                .GetProperty(foreignTable.ThisKey).Key;
 
             ConstructorInfo foreignTableConstructor = selectedPropertyType
                 .GetConstructor(BindingFlags.NonPublic | BindingFlags.Instance, null, new Type[]
                     { typeof(object), typeof(PropertyInfo), typeof(DbConnection) }, null);
 
             object newForeignTableInstance = foreignTableConstructor
-                .Invoke(new object[] { mainTable, mainTableForeignKeyProperty, _CurrentContextConnection });
+                .Invoke(new object[] { mainTable, mainTableForeignKeyProperty, _currentContextConnection });
 
             selectedProperty.SetValue(mainTable, newForeignTableInstance);
         }
@@ -94,11 +92,13 @@ namespace Handy.Converter
         {
             T newObject = new T();
 
-            foreach (KeyValuePair<PropertyInfo, ColumnAttribute> currentProperty in _TableProperties)
+            foreach (KeyValuePair<PropertyInfo, ColumnAttribute> currentProperty in _tableProperties)
             {
-                if (currentProperty.Value.IsTable)
+                ForeignTableAttribute foreignTable = currentProperty.Key.GetCustomAttribute<ForeignTableAttribute>();
+
+                if (foreignTable != null)
                 {
-                    SetCreatedInstanceForeignTable(newObject, currentProperty);
+                    SetCreatedInstanceForeignTable(newObject, currentProperty.Key, foreignTable);
 
                     continue;
                 }

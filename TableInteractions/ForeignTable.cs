@@ -4,7 +4,6 @@ using System.Data.Common;
 using System.Linq;
 using System.Reflection;
 using System.Text;
-
 using Handy.Converter;
 using Handy.TableInteractions;
 
@@ -12,33 +11,18 @@ namespace Handy
 {
     public class ForeignTable<Table> where Table : class, new()
     {
-        private static readonly Dictionary<Type, string> _ForeignTableQuery = new Dictionary<Type, string>();
+        private static readonly Dictionary<Type, string> _foreignTableQuery = new Dictionary<Type, string>();
 
-        private readonly object _MainTable;
-        private readonly PropertyInfo _MainTableForeignKey;
-        private readonly DbConnection _SqlConnection;
-        private Table[] _Value;
+        private readonly object _mainTable;
+        private readonly PropertyInfo _mainTableForeignKey;
+        private readonly DbConnection _sqlConnection;
+        private Table[] _value;
 
         internal ForeignTable(object mainTable, PropertyInfo mainTableForeignKey, DbConnection connection)
         {
-            if (mainTable == null)
-            {
-                throw new ArgumentNullException(nameof(mainTable));
-            }
-
-            if (mainTableForeignKey == null)
-            {
-                throw new ArgumentNullException(nameof(mainTableForeignKey));
-            }
-
-            if (connection == null)
-            {
-                throw new ArgumentNullException(nameof(connection));
-            }
-
-            _MainTable = mainTable;
-            _MainTableForeignKey = mainTableForeignKey;
-            _SqlConnection = connection;
+            _mainTable = mainTable ?? throw new ArgumentNullException(nameof(mainTable));
+            _mainTableForeignKey = mainTableForeignKey ?? throw new ArgumentNullException(nameof(mainTableForeignKey));
+            _sqlConnection = connection ?? throw new ArgumentNullException(nameof(connection));
         }
 
         private string GetOrCreateForeignTableQuery()
@@ -46,7 +30,7 @@ namespace Handy
             Type genericType = typeof(Table);
             Type tableType = genericType.GetElementType() ?? genericType;
 
-            if (_ForeignTableQuery.TryGetValue(tableType, out string foundForeingTableQuery))
+            if (_foreignTableQuery.TryGetValue(tableType, out string foundForeingTableQuery))
             {
                 return foundForeingTableQuery;
             }
@@ -69,14 +53,14 @@ namespace Handy
 
             string newForeingTableQuery = queryString.ToString();
 
-            _ForeignTableQuery.Add(tableType, newForeingTableQuery);
+            _foreignTableQuery.Add(tableType, newForeingTableQuery);
 
             return newForeingTableQuery;
         }
 
         private string GetForeignTableQuery()
         {
-            object mainTableForeignKeyValue = _MainTableForeignKey.GetValue(_MainTable);
+            object mainTableForeignKeyValue = _mainTableForeignKey.GetValue(_mainTable);
 
             string selectedForeingTableQuery = GetOrCreateForeignTableQuery();
             StringBuilder stringBuilder = new StringBuilder(selectedForeingTableQuery);
@@ -93,16 +77,16 @@ namespace Handy
         {
             get
             {
-                if (_Value == null)
+                if (_value == null)
                 {
                     string newQuery = GetForeignTableQuery();
-                    DbDataReader dataReader = _SqlConnection.ExecuteReader(newQuery);
-                    TableConverter<Table> converter = new TableConverter<Table>(_SqlConnection);
+                    DbDataReader dataReader = _sqlConnection.ExecuteReader(newQuery);
+                    TableConverter<Table> converter = new TableConverter<Table>(_sqlConnection);
 
-                    _Value = converter.Query(dataReader).ToArray();
+                    _value = converter.Query(dataReader).ToArray();
                 }
 
-                return _Value;
+                return _value;
             }
         }
     }

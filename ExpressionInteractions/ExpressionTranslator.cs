@@ -8,8 +8,8 @@ namespace Handy.ExpressionInteractions
 {
     public abstract class ExpressionTranslator : ExpressionVisitor
     {
-        private readonly TableQueryCreator _QueryCreator;
-        private readonly StringBuilder _TranslatedQuery;
+        private readonly TableQueryCreator _queryCreator;
+        private readonly StringBuilder _translatedQuery;
 
         protected ExpressionTranslator(TableQueryCreator queryCreator)
         {
@@ -18,13 +18,13 @@ namespace Handy.ExpressionInteractions
                 throw new ArgumentNullException(nameof(queryCreator));
             }
 
-            _QueryCreator = queryCreator;
-            _TranslatedQuery = new StringBuilder(queryCreator.MainQuery);
+            _queryCreator = queryCreator;
+            _translatedQuery = new StringBuilder(queryCreator.MainQuery);
         }
 
-        protected StringBuilder QueryBuilder => _TranslatedQuery;
+        protected StringBuilder QueryBuilder => _translatedQuery;
 
-        protected internal TableQueryCreator QueryCreator => _QueryCreator;
+        protected internal TableQueryCreator QueryCreator => _queryCreator;
 
         public abstract string ToString(Expression expression);
     }

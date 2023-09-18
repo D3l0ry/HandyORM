@@ -7,9 +7,9 @@ namespace Handy
 {
     public class ContextOptionsBuilder
     {
-        private readonly ContextOptions m_ContextOptions;
+        private readonly ContextOptions _contextOptions;
 
-        public ContextOptionsBuilder() => m_ContextOptions = new ContextOptions();
+        public ContextOptionsBuilder() => _contextOptions = new ContextOptions();
 
         public ContextOptionsBuilder UseConnectionString(string connectionString)
         {
@@ -18,56 +18,59 @@ namespace Handy
                 throw new ArgumentNullException(nameof(connectionString));
             }
 
-            m_ContextOptions.ConnectionString = connectionString;
+            _contextOptions.ConnectionString = connectionString;
+
+            return this;
+        }
+
+        public ContextOptionsBuilder UseConnection(DbConnection connection)
+        {
+            _contextOptions.Connection = connection;
+            _contextOptions.ConnectionString = connection?.ConnectionString;
 
             return this;
         }
 
         public ContextOptionsBuilder UseConnection<T>() where T : DbConnection, new()
         {
-            m_ContextOptions.Connection = new T();
+            _contextOptions.Connection = new T();
 
             return this;
         }
 
-        public ContextOptionsBuilder UseConnection<T>(string connection) where T : DbConnection, new()
+        public ContextOptionsBuilder UseConnection<T>(string connectionString) where T : DbConnection, new()
         {
-            if (string.IsNullOrWhiteSpace(connection))
-            {
-                throw new ArgumentNullException(nameof(connection));
-            }
-
-            m_ContextOptions.Connection = new T();
-            m_ContextOptions.ConnectionString = connection;
+            _contextOptions.Connection = new T();
+            _contextOptions.ConnectionString = connectionString;
 
             return this;
         }
 
         public ContextOptionsBuilder UseExpression<Translator>() where Translator : ExpressionTranslator
         {
-            m_ContextOptions.ExpressionTranslatorBuilder = new ExpressionTranslatorProvider<Translator>();
+            _contextOptions.ExpressionTranslatorBuilder = new ExpressionTranslatorProvider<Translator>();
 
             return this;
         }
 
         internal ContextOptions Build()
         {
-            if (string.IsNullOrWhiteSpace(m_ContextOptions.ConnectionString))
+            if (string.IsNullOrWhiteSpace(_contextOptions.ConnectionString))
             {
-                throw new ArgumentNullException(nameof(m_ContextOptions.ConnectionString));
+                throw new ArgumentNullException(nameof(_contextOptions.ConnectionString));
             }
 
-            if (m_ContextOptions.Connection == null)
+            if (_contextOptions.Connection == null)
             {
-                throw new ArgumentNullException(nameof(m_ContextOptions.Connection));
+                throw new ArgumentNullException(nameof(_contextOptions.Connection));
             }
 
-            if (m_ContextOptions.ExpressionTranslatorBuilder == null)
+            if (_contextOptions.ExpressionTranslatorBuilder == null)
             {
-                throw new ArgumentNullException(nameof(m_ContextOptions.ExpressionTranslatorBuilder));
+                throw new ArgumentNullException(nameof(_contextOptions.ExpressionTranslatorBuilder));
             }
 
-            return m_ContextOptions;
+            return _contextOptions;
         }
     }
 }

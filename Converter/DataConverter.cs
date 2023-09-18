@@ -4,7 +4,6 @@ using System.Data.Common;
 using System.Linq;
 using System.Reflection;
 using System.Runtime.CompilerServices;
-
 using Handy.Extensions;
 using Handy.Interfaces;
 
@@ -15,8 +14,8 @@ namespace Handy
     /// </summary>
     public class DataConverter<T> : IDataConverter<T> where T : new()
     {
-        private readonly Type _ObjectType;
-        private readonly PropertyInfo[] _TypeProperties;
+        private readonly Type _objectType;
+        private readonly PropertyInfo[] _typeProperties;
 
         /// <summary>
         /// Инициализатор
@@ -25,19 +24,19 @@ namespace Handy
         /// <exception cref="ArgumentNullException"></exception>
         public DataConverter()
         {
-            _ObjectType = typeof(T);
-            _TypeProperties = _ObjectType.GetProperties();
+            _objectType = typeof(T);
+            _typeProperties = _objectType.GetProperties();
         }
 
         /// <summary>
         /// Тип объекта
         /// </summary>
-        protected Type ObjectType => _ObjectType;
+        protected Type ObjectType => _objectType;
 
         /// <summary>
         /// Свойства объекта
         /// </summary>
-        protected PropertyInfo[] Properties => _TypeProperties;
+        protected PropertyInfo[] Properties => _typeProperties;
 
         protected virtual Func<DbDataReader, T> GetDefinedFunctionGetterObject(DbDataReader dataReader)
         {
@@ -58,7 +57,7 @@ namespace Handy
         {
             T table = new T();
 
-            foreach (PropertyInfo currentProperty in _TypeProperties)
+            foreach (PropertyInfo currentProperty in _typeProperties)
             {
                 currentProperty.SetDataReaderValue(table, dataReader);
             }

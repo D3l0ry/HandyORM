@@ -12,7 +12,7 @@ namespace Handy
 {
     public class Table<T> : IDataQueryable<T> where T : class, new()
     {
-        private readonly TableQueryProvider<T> _tableQueryProvider;
+        private readonly TableProvider<T> _tableQueryProvider;
         private readonly Expression _expression;
 
         internal Table(ContextOptions options)
@@ -22,24 +22,14 @@ namespace Handy
                 throw new ArgumentNullException(nameof(options));
             }
 
-            _tableQueryProvider = new TableQueryProvider<T>(options);
+            _tableQueryProvider = new TableProvider<T>(options);
             _expression = Expression.Constant(this);
         }
 
-        internal Table(TableQueryProvider<T> tableQueryProvider, Expression expression)
+        internal Table(TableProvider<T> tableQueryProvider, Expression expression)
         {
-            if (tableQueryProvider == null)
-            {
-                throw new ArgumentNullException(nameof(tableQueryProvider));
-            }
-
-            if (expression == null)
-            {
-                throw new ArgumentNullException(nameof(expression));
-            }
-
-            _tableQueryProvider = tableQueryProvider;
-            _expression = expression;
+            _tableQueryProvider = tableQueryProvider ?? throw new ArgumentNullException(nameof(tableQueryProvider));
+            _expression = expression ?? throw new ArgumentNullException(nameof(expression));
         }
 
         public Type ElementType => typeof(T);
@@ -54,7 +44,7 @@ namespace Handy
 
             StringBuilder stringBuilder = new StringBuilder("INSERT INTO ");
 
-            stringBuilder.Append(propertyQueryCreator.GetTableName());
+            stringBuilder.Append(_tableQueryProvider.Creator.Attribute.GetFullTableName());
             stringBuilder.Append(' ');
             stringBuilder.Append(propertyQueryCreator.GetTableProperties());
             stringBuilder.Append(" VALUES ");
@@ -70,7 +60,7 @@ namespace Handy
 
             StringBuilder stringBuilder = new StringBuilder("INSERT INTO ");
 
-            stringBuilder.Append(propertyQueryCreator.GetTableName());
+            stringBuilder.Append(_tableQueryProvider.Creator.Attribute.GetFullTableName());
             stringBuilder.Append(' ');
             stringBuilder.Append(propertyQueryCreator.GetTableProperties());
             stringBuilder.Append(" OUTPUT INSERTED.[");
@@ -105,7 +95,7 @@ namespace Handy
             {
                 StringBuilder stringBuilder = new StringBuilder("INSERT INTO ");
 
-                stringBuilder.Append(propertyQueryCreator.GetTableName());
+                stringBuilder.Append(_tableQueryProvider.Creator.Attribute.GetFullTableName());
                 stringBuilder.Append(' ');
                 stringBuilder.Append(propertyQueryCreator.GetTableProperties());
                 stringBuilder.Append(" VALUES ");
@@ -139,7 +129,7 @@ namespace Handy
 
             StringBuilder stringBuilder = new StringBuilder("UPDATE ");
 
-            stringBuilder.Append(propertyQueryCreator.GetTableName());
+            stringBuilder.Append(_tableQueryProvider.Creator.Attribute.GetFullTableName());
             stringBuilder.Append(" SET ");
             stringBuilder.Append(propertyQueryCreator.GetTablePropertiesNameAndValue(element));
             stringBuilder.Append(" WHERE ");
@@ -157,7 +147,7 @@ namespace Handy
 
             StringBuilder stringBuilder = new StringBuilder("DELETE FROM ");
 
-            stringBuilder.Append(propertyQueryCreator.GetTableName());
+            stringBuilder.Append(_tableQueryProvider.Creator.Attribute.GetFullTableName());
             stringBuilder.Append(" WHERE ");
             stringBuilder.Append(propertyQueryCreator.GetPropertyName(_tableQueryProvider.Creator.Properties.PrimaryKey));
             stringBuilder.Append(" = ");
@@ -171,13 +161,11 @@ namespace Handy
         {
             StringBuilder stringBuilder = new StringBuilder($"DELETE FROM ");
 
-            string tableName = _tableQueryProvider.Creator.Properties.GetTableName();
-
             string expressionTranslator = _tableQueryProvider.ExpressionTranslatorBuilder
                 .CreateInstance(_tableQueryProvider.Creator)
                 .ToString(expression);
 
-            stringBuilder.Append(tableName);
+            stringBuilder.Append(_tableQueryProvider.Creator.Attribute.GetFullTableName());
             stringBuilder.Append(" WHERE ");
             stringBuilder.Append(expressionTranslator);
 
@@ -203,7 +191,7 @@ namespace Handy
                 {
                     StringBuilder stringBuilder = new StringBuilder("DELETE FROM ");
 
-                    stringBuilder.Append(propertyQueryCreator.GetTableName());
+                    stringBuilder.Append(_tableQueryProvider.Creator.Attribute.GetFullTableName());
                     stringBuilder.Append(" WHERE ");
                     stringBuilder.Append(propertyQueryCreator.GetPropertyName(_tableQueryProvider.Creator.Properties.PrimaryKey));
                     stringBuilder.Append(" = ");
@@ -227,8 +215,7 @@ namespace Handy
 
         public void DeleteAll()
         {
-            TableProperties propertyQueryCreator = _tableQueryProvider.Creator.Properties;
-            string createElementQuery = $"DELETE FROM {propertyQueryCreator.GetTableName()};";
+            string createElementQuery = $"DELETE FROM {_tableQueryProvider.Creator.Attribute.GetFullTableName()};";
 
             _tableQueryProvider.Connection.ExecuteNonQuery(createElementQuery);
         }

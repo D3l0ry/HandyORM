@@ -11,8 +11,8 @@ namespace Handy
     /// </summary>
     public abstract class DatabaseContext : IDisposable
     {
-        private readonly ContextOptions mr_Options;
-        private readonly Dictionary<Type, IDataQueryable> mr_Tables;
+        private readonly ContextOptions _options;
+        private readonly Dictionary<Type, IDataQueryable> _tables;
 
         protected DatabaseContext()
         {
@@ -20,11 +20,11 @@ namespace Handy
 
             OnConfigure(optionsBuilder);
 
-            mr_Options = optionsBuilder.Build();
-            mr_Tables = new Dictionary<Type, IDataQueryable>();
+            _options = optionsBuilder.Build();
+            _tables = new Dictionary<Type, IDataQueryable>();
 
-            mr_Options.Connection.ConnectionString = mr_Options.ConnectionString;
-            mr_Options.Connection.Open();
+            _options.Connection.ConnectionString = _options.ConnectionString;
+            _options.Connection.Open();
         }
 
         protected DatabaseContext(string connection)
@@ -34,14 +34,14 @@ namespace Handy
 
             OnConfigure(optionsBuilder);
 
-            mr_Options = optionsBuilder.Build();
-            mr_Tables = new Dictionary<Type, IDataQueryable>();
+            _options = optionsBuilder.Build();
+            _tables = new Dictionary<Type, IDataQueryable>();
 
-            mr_Options.Connection.ConnectionString = mr_Options.ConnectionString;
-            mr_Options.Connection.Open();
+            _options.Connection.ConnectionString = _options.ConnectionString;
+            _options.Connection.Open();
         }
 
-        public DbConnection Connection => mr_Options.Connection;
+        public DbConnection Connection => _options.Connection;
 
         /// <summary>
         /// Вызывается при инициализации и до момента подключения к бд
@@ -50,7 +50,7 @@ namespace Handy
         protected abstract void OnConfigure(ContextOptionsBuilder options);
 
         protected virtual IEnumerable<T> ExecuteProcedure<T>(string procedure, params DbParameter[] arguments) where T : new() =>
-            mr_Options.Connection.ExecuteProcedure<T>(procedure, arguments);
+            _options.Connection.ExecuteProcedure<T>(procedure, arguments);
 
         /// <summary>
         /// Получает объект TableManager с указанным типом, который определяет модель таблицы из базы данных
@@ -60,24 +60,24 @@ namespace Handy
         protected Table<Table> GetTable<Table>() where Table : class, new()
         {
             Type tableType = typeof(Table);
-            bool tryGet = mr_Tables.TryGetValue(tableType, out IDataQueryable selectedTable);
+            bool tryGet = _tables.TryGetValue(tableType, out IDataQueryable selectedTable);
 
             if (tryGet)
             {
                 return (Table<Table>)selectedTable;
             }
 
-            Table<Table> newTable = new Table<Table>(mr_Options);
+            Table<Table> newTable = new Table<Table>(_options);
 
-            mr_Tables.Add(tableType, newTable);
+            _tables.Add(tableType, newTable);
 
             return newTable;
         }
 
         public void Dispose()
         {
-            mr_Tables.Clear();
-            mr_Options.Connection.Close();
+            _tables.Clear();
+            _options.Connection.Close();
         }
     }
 }

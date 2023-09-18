@@ -9,43 +9,33 @@ namespace Handy.TableInteractions
 {
     public class TableProperties : IEnumerable<KeyValuePair<PropertyInfo, ColumnAttribute>>
     {
-        private readonly Type _TableType;
-        private readonly TableAttribute _TableAttribute;
-        private readonly KeyValuePair<PropertyInfo, ColumnAttribute> _PrimaryKeyProperty;
-        private readonly KeyValuePair<PropertyInfo, ColumnAttribute>[] _Properties;
+        private readonly Type _tableType;
+        private readonly TableAttribute _tableAttribute;
+        private readonly KeyValuePair<PropertyInfo, ColumnAttribute> _primaryKeyProperty;
+        private readonly KeyValuePair<PropertyInfo, ColumnAttribute>[] _properties;
 
         public TableProperties(Type tableType, TableAttribute tableAttribute)
         {
-            if (tableType == null)
-            {
-                throw new ArgumentNullException(nameof(tableType));
-            }
+            _tableType = tableType ?? throw new ArgumentNullException(nameof(tableType));
+            _tableAttribute = tableAttribute ?? throw new ArgumentNullException(nameof(tableAttribute));
+            _properties = GetProperties().ToArray();
 
-            if (tableAttribute == null)
-            {
-                throw new ArgumentNullException(nameof(tableAttribute));
-            }
-
-            _TableType = tableType;
-            _TableAttribute = tableAttribute;
-            _Properties = GetProperties().ToArray();
-
-            KeyValuePair<PropertyInfo, ColumnAttribute> primaryKeyProperty = _Properties
+            KeyValuePair<PropertyInfo, ColumnAttribute> primaryKeyProperty = _properties
                 .FirstOrDefault(currentPropertyValuePair => currentPropertyValuePair.Value.IsPrimaryKey);
 
             if (primaryKeyProperty.Key == null)
             {
-                throw new NullReferenceException($"В таблице {_TableAttribute.Name} не существует первичного ключа!");
+                throw new NullReferenceException($"В таблице {_tableAttribute.Name} не существует первичного ключа!");
             }
 
-            _PrimaryKeyProperty = primaryKeyProperty;
+            _primaryKeyProperty = primaryKeyProperty;
         }
 
-        public KeyValuePair<PropertyInfo, ColumnAttribute> PrimaryKey => _PrimaryKeyProperty;
+        public KeyValuePair<PropertyInfo, ColumnAttribute> PrimaryKey => _primaryKeyProperty;
 
         private IEnumerable<KeyValuePair<PropertyInfo, ColumnAttribute>> GetProperties()
         {
-            IEnumerable<PropertyInfo> properties = _TableType.GetProperties(BindingFlags.Public | BindingFlags.Instance)
+            IEnumerable<PropertyInfo> properties = _tableType.GetProperties(BindingFlags.Public | BindingFlags.Instance)
                 .Where(currentProperty => currentProperty.IsDefined(typeof(ColumnAttribute)));
 
             foreach (PropertyInfo currentProperty in properties)
@@ -59,21 +49,7 @@ namespace Handy.TableInteractions
             }
         }
 
-        public string GetTableName()
-        {
-            StringBuilder tableName = new StringBuilder();
-
-            if (!string.IsNullOrWhiteSpace(_TableAttribute.Schema))
-            {
-                tableName.Append($"[{_TableAttribute.Schema}].");
-            }
-
-            tableName.Append($"[{_TableAttribute.Name}]");
-
-            return tableName.ToString();
-        }
-
-        public KeyValuePair<PropertyInfo, ColumnAttribute> GetProperty(int propertyIndex) => _Properties[propertyIndex];
+        public KeyValuePair<PropertyInfo, ColumnAttribute> GetProperty(int propertyIndex) => _properties[propertyIndex];
 
         public KeyValuePair<PropertyInfo, ColumnAttribute> GetProperty(string propertyColumnName)
         {
@@ -82,7 +58,7 @@ namespace Handy.TableInteractions
                 throw new ArgumentNullException(nameof(propertyColumnName));
             }
 
-            KeyValuePair<PropertyInfo, ColumnAttribute> selectedProperty = _Properties
+            KeyValuePair<PropertyInfo, ColumnAttribute> selectedProperty = _properties
                 .FirstOrDefault(currentProperty => currentProperty.Value.Name == propertyColumnName);
 
             if (selectedProperty.Key == null)
@@ -95,7 +71,7 @@ namespace Handy.TableInteractions
 
         public KeyValuePair<PropertyInfo, ColumnAttribute> GetProperty(PropertyInfo property)
         {
-            KeyValuePair<PropertyInfo, ColumnAttribute> selectedProperty = _Properties
+            KeyValuePair<PropertyInfo, ColumnAttribute> selectedProperty = _properties
                 .FirstOrDefault(currentProperty => currentProperty.Key == property);
 
             if (selectedProperty.Key == null)
@@ -108,49 +84,21 @@ namespace Handy.TableInteractions
 
         public string GetPropertyName(in KeyValuePair<PropertyInfo, ColumnAttribute> property)
         {
-            ColumnAttribute propertyColumn = property.Value;
+            string propertyName = string
+                .Join(".", _tableAttribute.GetFullTableName(), $"[{property.Value.Name}]");
 
-            if (propertyColumn.IsForeignColumn && propertyColumn.ForeignTable != null)
-            {
-                TableQueryCreator tableQueryCreator = TableQueryCreator
-                    .GetInstance(propertyColumn.ForeignTable);
-
-                KeyValuePair<PropertyInfo, ColumnAttribute> foreignProperty = tableQueryCreator.Properties
-                    .GetProperty(propertyColumn.Name);
-
-                return tableQueryCreator.Properties.GetPropertyName(foreignProperty);
-            }
-
-            StringBuilder propertyName = new StringBuilder(GetTableName());
-
-            propertyName.Append($".[{property.Value.Name}]");
-
-            return propertyName.ToString();
-        }
-
-        public string GetForeignKeyName(ColumnAttribute propertyColumn)
-        {
-            if (string.IsNullOrWhiteSpace(propertyColumn.ForeignKeyName))
-            {
-                throw new ArgumentNullException($"Получение имени внешнего ключа в {propertyColumn.Name} невозможно! Поле внешнего ключа является пустым");
-            }
-
-            StringBuilder foreignKeyName = new StringBuilder(GetTableName());
-
-            foreignKeyName.Append($".[{propertyColumn.ForeignKeyName}]");
-
-            return foreignKeyName.ToString();
+            return propertyName;
         }
 
         public string GetTableProperties()
         {
             StringBuilder stringProperties = new StringBuilder("(");
 
-            foreach (KeyValuePair<PropertyInfo, ColumnAttribute> currentKeyValuePair in _Properties)
+            foreach (KeyValuePair<PropertyInfo, ColumnAttribute> currentKeyValuePair in _properties)
             {
                 ColumnAttribute columnAttribute = currentKeyValuePair.Value;
 
-                if (!columnAttribute.IsValid)
+                if (columnAttribute.IsAutoGenerated)
                 {
                     continue;
                 }
@@ -167,11 +115,11 @@ namespace Handy.TableInteractions
         {
             StringBuilder stringPropertiesValue = new StringBuilder("(");
 
-            foreach (KeyValuePair<PropertyInfo, ColumnAttribute> currentKeyValuePair in _Properties)
+            foreach (KeyValuePair<PropertyInfo, ColumnAttribute> currentKeyValuePair in _properties)
             {
                 ColumnAttribute columnAttribute = currentKeyValuePair.Value;
 
-                if (!columnAttribute.IsValid)
+                if (columnAttribute.IsAutoGenerated)
                 {
                     continue;
                 }
@@ -188,11 +136,11 @@ namespace Handy.TableInteractions
         {
             StringBuilder stringProperties = new StringBuilder();
 
-            foreach (KeyValuePair<PropertyInfo, ColumnAttribute> currentKeyValuePair in _Properties)
+            foreach (KeyValuePair<PropertyInfo, ColumnAttribute> currentKeyValuePair in _properties)
             {
                 ColumnAttribute columnAttribute = currentKeyValuePair.Value;
 
-                if (!columnAttribute.IsValid)
+                if (columnAttribute.IsAutoGenerated)
                 {
                     continue;
                 }
@@ -238,8 +186,8 @@ namespace Handy.TableInteractions
             }
         }
 
-        public IEnumerator<KeyValuePair<PropertyInfo, ColumnAttribute>> GetEnumerator() => _Properties.AsEnumerable().GetEnumerator();
+        public IEnumerator<KeyValuePair<PropertyInfo, ColumnAttribute>> GetEnumerator() => _properties.AsEnumerable().GetEnumerator();
 
-        IEnumerator IEnumerable.GetEnumerator() => _Properties.GetEnumerator();
+        IEnumerator IEnumerable.GetEnumerator() => _properties.GetEnumerator();
     }
 }
