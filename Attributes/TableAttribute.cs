@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Text;
 
 namespace Handy
 {
@@ -24,5 +25,19 @@ namespace Handy
         /// Имя схемы таблицы в базе данных
         /// </summary>
         public string Schema { get; set; }
+
+        public string GetFullTableName()
+        {
+            StringBuilder tableName = new StringBuilder();
+
+            if (!string.IsNullOrWhiteSpace(Schema))
+            {
+                tableName.Append($"[{Schema}].");
+            }
+
+            tableName.Append($"[{Name}]");
+
+            return tableName.ToString();
+        }
     }
 }
